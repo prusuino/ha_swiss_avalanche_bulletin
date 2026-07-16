@@ -1,0 +1,21 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "SLF Lawinenbulletin",
+        "description": "Richtet das Schweizer Lawinenbulletin (SLF) für einen Standort ein. Breiten-/Längengrad sind standardmässig der Home-Assistant-Heimatstandort, können aber auf jeden Ort in/nahe der Schweiz geändert werden. Integration erneut hinzufügen, um einen weiteren Standort zu verfolgen.",
+        "data": {
+          "name": "Bezeichnung (optional, z.B. \"Zuhause\" oder \"Ferienhaus\")",
+          "latitude": "Breitengrad",
+          "longitude": "Längengrad"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "Dieser Standort ist bereits konfiguriert."
+    },
+    "error": {
+      "cannot_connect": "Die SLF-Warnregion konnte für diese Koordinaten nicht ermittelt werden."
+    }
+  }
+}

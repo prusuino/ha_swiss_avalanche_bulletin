@@ -1,0 +1,21 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Bollettino valanghe Svizzera (SLF)",
+        "description": "Configura il bollettino valanghe svizzero (SLF) per una posizione. Latitudine/longitudine corrispondono per impostazione predefinita alla posizione di casa di Home Assistant, ma possono essere modificate per qualsiasi luogo in/vicino alla Svizzera. Aggiungi di nuovo l'integrazione per monitorare un'altra posizione.",
+        "data": {
+          "name": "Etichetta (opzionale, p.es. \"Casa\" o \"Baita\")",
+          "latitude": "Latitudine",
+          "longitude": "Longitudine"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "Questa posizione è già configurata."
+    },
+    "error": {
+      "cannot_connect": "Impossibile determinare la regione di allerta SLF per queste coordinate."
+    }
+  }
+}

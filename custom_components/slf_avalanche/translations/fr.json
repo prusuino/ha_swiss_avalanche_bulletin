@@ -1,0 +1,21 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Bulletin d'avalanches Suisse (SLF)",
+        "description": "Configure le bulletin d'avalanches suisse (SLF) pour un emplacement. La latitude/longitude correspondent par défaut à l'emplacement de votre domicile Home Assistant, mais peuvent être modifiées pour tout endroit en/près de Suisse. Ajoutez à nouveau l'intégration pour suivre un autre emplacement.",
+        "data": {
+          "name": "Libellé (optionnel, p.ex. « Domicile » ou « Chalet »)",
+          "latitude": "Latitude",
+          "longitude": "Longitude"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "Cet emplacement est déjà configuré."
+    },
+    "error": {
+      "cannot_connect": "Impossible de déterminer la région d'avertissement SLF pour ces coordonnées."
+    }
+  }
+}

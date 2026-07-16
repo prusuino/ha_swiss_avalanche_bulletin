@@ -1,0 +1,21 @@
+{
+  "config": {
+    "step": {
+      "user": {
+        "title": "Swiss Avalanche Bulletin (SLF)",
+        "description": "Sets up the Swiss avalanche bulletin (SLF) for a location. Latitude/longitude default to your Home Assistant home location, but can be changed to any location in/near Switzerland. Add the integration again to track another location.",
+        "data": {
+          "name": "Label (optional, e.g. \"Home\" or \"Cabin\")",
+          "latitude": "Latitude",
+          "longitude": "Longitude"
+        }
+      }
+    },
+    "abort": {
+      "already_configured": "This location is already configured."
+    },
+    "error": {
+      "cannot_connect": "Could not determine the SLF warning region for these coordinates."
+    }
+  }
+}
