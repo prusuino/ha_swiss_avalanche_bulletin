@@ -70,3 +70,9 @@ This integration is provided **as-is, without any warranty**. Data is retrieved 
 ## License
 
 Source code: MIT — see [LICENSE](LICENSE). Avalanche bulletin data: CC BY 4.0 (SLF) — see [NOTICE.md](NOTICE.md).
+
+## Support
+
+If this integration is useful to you, you can support its development:
+
+<a href="https://www.buymeacoffee.com/prusuino"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me A Coffee" height="41"></a>
