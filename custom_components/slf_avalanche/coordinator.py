@@ -9,7 +9,15 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
-from .const import BULLETIN_URL, DANGER_LEVEL_NUMBERS, DOMAIN, SECTOR_URL, UPDATE_INTERVAL_MINUTES
+from .const import (
+    BULLETIN_URL,
+    DANGER_LEVEL_NUMBERS,
+    DOMAIN,
+    IMIS_UPDATE_INTERVAL_MINUTES,
+    SECTOR_URL,
+    UPDATE_INTERVAL_MINUTES,
+)
+from .imis import async_fetch_daily_snow, async_fetch_station_measurements
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -112,4 +120,49 @@ class SlfAvalancheCoordinator(DataUpdateCoordinator[dict]):
                 "avalanche_problems": props.get("avalancheProblems", []),
             }
         )
+        return result
+
+
+class ImisCoordinator(DataUpdateCoordinator[dict]):
+    """Fetches the latest IMIS measurements for the selected stations.
+
+    Data: dict keyed by station code with {"values", "fields", "measure_date",
+    "new_snow_1d", "daily_snow_height"}.
+    """
+
+    def __init__(self, hass: HomeAssistant, stations: list[dict]) -> None:
+        super().__init__(
+            hass,
+            _LOGGER,
+            name=f"{DOMAIN}_imis",
+            update_interval=timedelta(minutes=IMIS_UPDATE_INTERVAL_MINUTES),
+        )
+        # Station metadata dicts as stored in the config entry
+        # (code, label, elevation, lat, lon, type, distance_km).
+        self.stations = stations
+
+    async def _async_update_data(self) -> dict:
+        try:
+            daily = await async_fetch_daily_snow(self.hass)
+        except Exception as err:  # noqa: BLE001 - daily snow is an optional extra
+            _LOGGER.debug("IMIS daily-snow unavailable: %s", err)
+            daily = {}
+
+        result: dict[str, dict] = {}
+        errors = 0
+        for station in self.stations:
+            code = station["code"]
+            try:
+                data = await async_fetch_station_measurements(self.hass, code)
+            except Exception as err:
+                _LOGGER.warning("IMIS station %s unreachable: %s", code, err)
+                errors += 1
+                continue
+            daily_record = daily.get(code) or {}
+            data["new_snow_1d"] = daily_record.get("HN_1D")
+            data["daily_snow_height"] = daily_record.get("HS")
+            result[code] = data
+
+        if errors and not result:
+            raise UpdateFailed("No IMIS station reachable")
         return result

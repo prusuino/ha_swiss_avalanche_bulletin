@@ -6,25 +6,51 @@ Attribution is required when using/displaying this data.
 """
 from __future__ import annotations
 
-from homeassistant.components.sensor import SensorEntity
+from homeassistant.components.sensor import (
+    SensorDeviceClass,
+    SensorEntity,
+    SensorStateClass,
+)
 from homeassistant.config_entries import ConfigEntry
+from homeassistant.const import (
+    DEGREE,
+    PERCENTAGE,
+    UnitOfLength,
+    UnitOfSpeed,
+    UnitOfTemperature,
+)
 from homeassistant.core import HomeAssistant
+from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import slugify
 
+from . import RuntimeData
 from .const import CONF_NAME, DOMAIN, MAX_PROBLEM_SENSORS
-from .coordinator import SlfAvalancheCoordinator
+from .coordinator import ImisCoordinator, SlfAvalancheCoordinator
 from .device import device_info
 from .localization import danger_level_text, problem_type_text, t
 
 ATTRIBUTION = "Data: WSL Institute for Snow and Avalanche Research SLF (CC BY 4.0)"
 
+# Sensor key -> (unit, device_class, state_class, icon)
+IMIS_SENSOR_TYPES: dict[str, tuple] = {
+    "snow_height": (UnitOfLength.CENTIMETERS, None, SensorStateClass.MEASUREMENT, "mdi:snowflake"),
+    "new_snow_1d": (UnitOfLength.CENTIMETERS, None, SensorStateClass.MEASUREMENT, "mdi:weather-snowy"),
+    "air_temperature": (UnitOfTemperature.CELSIUS, SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT, None),
+    "snow_surface_temperature": (UnitOfTemperature.CELSIUS, SensorDeviceClass.TEMPERATURE, SensorStateClass.MEASUREMENT, "mdi:thermometer-low"),
+    "humidity": (PERCENTAGE, SensorDeviceClass.HUMIDITY, SensorStateClass.MEASUREMENT, None),
+    "wind_speed": (UnitOfSpeed.METERS_PER_SECOND, SensorDeviceClass.WIND_SPEED, SensorStateClass.MEASUREMENT, None),
+    "wind_gust": (UnitOfSpeed.METERS_PER_SECOND, SensorDeviceClass.WIND_SPEED, SensorStateClass.MEASUREMENT, "mdi:weather-windy"),
+    "wind_direction": (DEGREE, None, SensorStateClass.MEASUREMENT, "mdi:compass-outline"),
+}
+
 
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
-    coordinator: SlfAvalancheCoordinator = hass.data[DOMAIN][entry.entry_id]
+    data: RuntimeData = hass.data[DOMAIN][entry.entry_id]
+    coordinator = data.bulletin
 
     entities: list[SensorEntity] = [
         SlfDangerLevelSensor(hass, coordinator, entry),
@@ -32,6 +58,18 @@ async def async_setup_entry(
     ]
     for i in range(MAX_PROBLEM_SENSORS):
         entities.append(SlfProblemSensor(hass, coordinator, entry, i))
+
+    if data.imis is not None:
+        for station in data.imis.stations:
+            station_data = (data.imis.data or {}).get(station["code"]) or {}
+            fields = set(station_data.get("fields") or [])
+            if station_data.get("new_snow_1d") is not None or "snow_height" in fields:
+                fields.add("new_snow_1d")
+            for key in IMIS_SENSOR_TYPES:
+                if key in fields:
+                    entities.append(
+                        ImisMeasurementSensor(hass, data.imis, entry, station, key)
+                    )
 
     async_add_entities(entities)
 
@@ -145,3 +183,63 @@ class SlfProblemSensor(CoordinatorEntity[SlfAvalancheCoordinator], SensorEntity)
             "aspects": p.get("aspects"),
             "comment": p.get("comment"),
         }
+
+
+class ImisMeasurementSensor(CoordinatorEntity[ImisCoordinator], SensorEntity):
+    """One measured value of an IMIS station (official SLF measurement API)."""
+
+    _attr_has_entity_name = False
+    _attr_attribution = ATTRIBUTION
+
+    def __init__(
+        self,
+        hass: HomeAssistant,
+        coordinator: ImisCoordinator,
+        entry: ConfigEntry,
+        station: dict,
+        key: str,
+    ) -> None:
+        super().__init__(coordinator)
+        self._station = station
+        self._key = key
+        code = station["code"]
+        unit, device_class, state_class, icon = IMIS_SENSOR_TYPES[key]
+        self._attr_native_unit_of_measurement = unit
+        self._attr_device_class = device_class
+        self._attr_state_class = state_class
+        if icon:
+            self._attr_icon = icon
+        self._attr_name = t(f"imis_{key}", hass)
+        self._attr_unique_id = f"{entry.entry_id}_imis_{code}_{key}"
+        self.entity_id = f"sensor.slf_imis_{slugify(code)}_{key}"
+        label = station.get("label") or code
+        self._attr_device_info = DeviceInfo(
+            identifiers={(DOMAIN, f"{entry.entry_id}_imis_{code}")},
+            name=t("imis_device_name", hass, name=f"{label} ({code})"),
+            manufacturer=t("manufacturer", hass),
+            model=t("imis_model", hass),
+            entry_type="service",
+        )
+
+    def _station_data(self) -> dict:
+        return (self.coordinator.data or {}).get(self._station["code"]) or {}
+
+    @property
+    def native_value(self):
+        data = self._station_data()
+        if self._key == "new_snow_1d":
+            return data.get("new_snow_1d")
+        return (data.get("values") or {}).get(self._key)
+
+    @property
+    def extra_state_attributes(self):
+        attrs = {
+            "station_code": self._station["code"],
+            "station_name": self._station.get("label"),
+            "elevation": self._station.get("elevation"),
+            "distance_km": self._station.get("distance_km"),
+            "measure_date": self._station_data().get("measure_date"),
+        }
+        if self._key == "snow_height":
+            attrs["daily_snow_height"] = self._station_data().get("daily_snow_height")
+        return attrs

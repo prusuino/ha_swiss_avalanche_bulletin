@@ -54,6 +54,66 @@ STRINGS: dict[str, dict[str, str]] = {
         "fr": "Problème d'avalanche {n}",
         "it": "Problema valanghe {n}",
     },
+    "imis_device_name": {
+        "de": "IMIS-Station {name}",
+        "en": "IMIS Station {name}",
+        "fr": "Station IMIS {name}",
+        "it": "Stazione IMIS {name}",
+    },
+    "imis_model": {
+        "de": "IMIS-Messstation",
+        "en": "IMIS Measuring Station",
+        "fr": "Station de mesure IMIS",
+        "it": "Stazione di misura IMIS",
+    },
+    "imis_snow_height": {
+        "de": "Schneehöhe",
+        "en": "Snow Depth",
+        "fr": "Hauteur de neige",
+        "it": "Altezza della neve",
+    },
+    "imis_new_snow_1d": {
+        "de": "Neuschnee 24 h",
+        "en": "New Snow 24 h",
+        "fr": "Neige fraîche 24 h",
+        "it": "Neve fresca 24 h",
+    },
+    "imis_air_temperature": {
+        "de": "Lufttemperatur",
+        "en": "Air Temperature",
+        "fr": "Température de l'air",
+        "it": "Temperatura dell'aria",
+    },
+    "imis_snow_surface_temperature": {
+        "de": "Schneeoberflächentemperatur",
+        "en": "Snow Surface Temperature",
+        "fr": "Température de surface de la neige",
+        "it": "Temperatura della superficie della neve",
+    },
+    "imis_humidity": {
+        "de": "Luftfeuchtigkeit",
+        "en": "Humidity",
+        "fr": "Humidité de l'air",
+        "it": "Umidità dell'aria",
+    },
+    "imis_wind_speed": {
+        "de": "Windgeschwindigkeit",
+        "en": "Wind Speed",
+        "fr": "Vitesse du vent",
+        "it": "Velocità del vento",
+    },
+    "imis_wind_gust": {
+        "de": "Windböen",
+        "en": "Wind Gusts",
+        "fr": "Rafales de vent",
+        "it": "Raffiche di vento",
+    },
+    "imis_wind_direction": {
+        "de": "Windrichtung",
+        "en": "Wind Direction",
+        "fr": "Direction du vent",
+        "it": "Direzione del vento",
+    },
 }
 
 # CAAML dangerRating mainValue -> localized EAWS danger-level text.

@@ -9,6 +9,13 @@
           "latitude": "Latitude",
           "longitude": "Longitude"
         }
+      },
+      "imis": {
+        "title": "IMIS measuring stations (optional)",
+        "description": "Optionally add favourite IMIS measuring stations of the SLF: snow depth, new snow, temperatures and wind, updated every 30 minutes. Any station can be selected — the list is sorted by distance from this location (❄ snow station, 🌬 wind station), type to search. Favourites can be changed later via the integration options. Leave empty to skip.",
+        "data": {
+          "imis_stations": "Stations"
+        }
       }
     },
     "abort": {
@@ -16,6 +23,20 @@
     },
     "error": {
       "cannot_connect": "Could not determine the SLF warning region for these coordinates."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "IMIS measuring stations",
+        "description": "Manage the favourite IMIS measuring stations of this location. The list is sorted by distance (❄ snow station, 🌬 wind station), type to search.",
+        "data": {
+          "imis_stations": "Stations"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Could not fetch the IMIS station list. Please try again later."
     }
   }
 }

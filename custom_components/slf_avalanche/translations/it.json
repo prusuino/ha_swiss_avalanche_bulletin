@@ -9,6 +9,13 @@
           "latitude": "Latitudine",
           "longitude": "Longitudine"
         }
+      },
+      "imis": {
+        "title": "Stazioni di misura IMIS (opzionale)",
+        "description": "Aggiungi in opzione stazioni di misura IMIS dell'SLF come preferite: altezza della neve, neve fresca, temperature e vento, aggiornati ogni 30 minuti. È possibile selezionare qualsiasi stazione — l'elenco è ordinato per distanza da questa posizione (❄ stazione neve, 🌬 stazione vento), digita per cercare. Le preferite possono essere modificate in seguito tramite le opzioni dell'integrazione. Lascia vuoto per saltare.",
+        "data": {
+          "imis_stations": "Stazioni"
+        }
       }
     },
     "abort": {
@@ -16,6 +23,20 @@
     },
     "error": {
       "cannot_connect": "Impossibile determinare la regione di allerta SLF per queste coordinate."
+    }
+  },
+  "options": {
+    "step": {
+      "init": {
+        "title": "Stazioni di misura IMIS",
+        "description": "Gestisci le stazioni di misura IMIS preferite di questa posizione. L'elenco è ordinato per distanza (❄ stazione neve, 🌬 stazione vento), digita per cercare.",
+        "data": {
+          "imis_stations": "Stazioni"
+        }
+      }
+    },
+    "error": {
+      "cannot_connect": "Impossibile recuperare l'elenco delle stazioni IMIS. Riprova più tardi."
     }
   }
 }
