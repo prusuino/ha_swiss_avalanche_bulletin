@@ -1,37 +1,67 @@
 """Swiss Avalanche Bulletin (SLF) integration."""
 from __future__ import annotations
 
+from pathlib import Path
+
+from homeassistant.components.http import StaticPathConfig
 from homeassistant.config_entries import ConfigEntry
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers import device_registry as dr
 
-from .const import CONF_IMIS_STATIONS, CONF_LATITUDE, CONF_LONGITUDE, DOMAIN
+from .const import (
+    CONF_IMIS_STATIONS,
+    CONF_LATITUDE,
+    CONF_LONGITUDE,
+    CONF_MODE,
+    DOMAIN,
+    MODE_BULLETIN,
+    MODE_IMIS,
+    STATIC_URL_BASE,
+)
 from .coordinator import ImisCoordinator, SlfAvalancheCoordinator
 
 PLATFORMS = ["sensor"]
 
 
 class RuntimeData:
-    """Per-entry runtime data: bulletin coordinator plus optional IMIS."""
+    """Per-entry runtime data: bulletin coordinator and/or IMIS coordinator."""
 
     def __init__(
-        self, bulletin: SlfAvalancheCoordinator, imis: ImisCoordinator | None
+        self,
+        bulletin: SlfAvalancheCoordinator | None,
+        imis: ImisCoordinator | None,
     ) -> None:
         self.bulletin = bulletin
         self.imis = imis
 
 
 async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
-    bulletin = SlfAvalancheCoordinator(
-        hass, entry.data[CONF_LATITUDE], entry.data[CONF_LONGITUDE]
-    )
-    await bulletin.async_config_entry_first_refresh()
+    if not hass.data.get(f"{DOMAIN}_static_registered"):
+        await hass.http.async_register_static_paths(
+            [
+                StaticPathConfig(
+                    STATIC_URL_BASE,
+                    str(Path(__file__).parent / "static"),
+                    cache_headers=True,
+                )
+            ]
+        )
+        hass.data[f"{DOMAIN}_static_registered"] = True
+
+    mode = entry.data.get(CONF_MODE, MODE_BULLETIN)
+
+    bulletin = None
+    if mode == MODE_BULLETIN:
+        bulletin = SlfAvalancheCoordinator(
+            hass, entry.data[CONF_LATITUDE], entry.data[CONF_LONGITUDE]
+        )
+        await bulletin.async_config_entry_first_refresh()
 
     imis = None
     stations = entry.options.get(
         CONF_IMIS_STATIONS, entry.data.get(CONF_IMIS_STATIONS) or []
     )
-    if stations:
+    if mode == MODE_IMIS and stations:
         imis = ImisCoordinator(hass, stations)
         await imis.async_config_entry_first_refresh()
 
@@ -39,6 +69,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = RuntimeData(bulletin, imis)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
+
+    from . import dashboard
+
+    await dashboard.async_ensure_dashboard(hass, entry)
 
     async def _options_updated(hass: HomeAssistant, entry: ConfigEntry) -> None:
         # Favourite stations changed -> rebuild coordinators and entities.
@@ -70,3 +104,14 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if unloaded:
         hass.data[DOMAIN].pop(entry.entry_id)
     return unloaded
+
+
+async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
+    """Clean up the auto-created dashboard when the last entry is removed."""
+    remaining = [
+        e for e in hass.config_entries.async_entries(DOMAIN) if e.entry_id != entry.entry_id
+    ]
+    if not remaining:
+        from . import dashboard
+
+        await dashboard.async_remove_dashboard(hass)

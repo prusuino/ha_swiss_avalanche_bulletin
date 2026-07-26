@@ -3,6 +3,7 @@
   "name": "Swiss Avalanche Bulletin (SLF)",
   "codeowners": ["@prusuino"],
   "config_flow": true,
+  "dependencies": ["http", "lovelace"],
   "documentation": "https://github.com/prusuino/ha_swiss_avalanche_bulletin",
   "integration_type": "service",
   "iot_class": "cloud_polling",

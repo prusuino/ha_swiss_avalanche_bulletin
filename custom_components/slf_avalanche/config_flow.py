@@ -18,8 +18,11 @@ from .const import (
     CONF_IMIS_STATIONS,
     CONF_LATITUDE,
     CONF_LONGITUDE,
+    CONF_MODE,
     CONF_NAME,
     DOMAIN,
+    MODE_BULLETIN,
+    MODE_IMIS,
 )
 from .coordinator import async_resolve_sector
 from .imis import async_fetch_stations, stations_by_distance
@@ -71,16 +74,29 @@ def _selected_stations(stations: list[dict], codes: list[str]) -> list[dict]:
     return result
 
 
+def _imis_title(stations: list[dict]) -> str:
+    labels = [s["label"] for s in stations]
+    shown = ", ".join(labels[:2])
+    if len(labels) > 2:
+        shown += f" +{len(labels) - 2}"
+    return f"IMIS {shown}" if shown else "IMIS"
+
+
 class SlfAvalancheConfigFlow(ConfigFlow, domain=DOMAIN):
-    """Config flow: pick a location (defaults to the HA home location), one instance per location."""
+    """Mode menu first: avalanche bulletin per location, or IMIS station favourites."""
 
     VERSION = 1
 
     def __init__(self) -> None:
-        self._location: dict[str, Any] = {}
         self._stations: list[dict] = []
 
     async def async_step_user(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+        return self.async_show_menu(step_id="user", menu_options=["bulletin", "imis"])
+
+    async def async_step_bulletin(
+        self, user_input: dict[str, Any] | None = None
+    ) -> FlowResult:
+        """Set up the avalanche bulletin for a location (one instance per location)."""
         errors: dict[str, str] = {}
 
         if user_input is not None:
@@ -95,52 +111,54 @@ class SlfAvalancheConfigFlow(ConfigFlow, domain=DOMAIN):
             except Exception:
                 errors["base"] = "cannot_connect"
             else:
-                self._location = {
-                    CONF_NAME: user_input.get(CONF_NAME) or sector["sector_name"],
-                    CONF_LATITUDE: lat,
-                    CONF_LONGITUDE: lon,
-                }
-                return await self.async_step_imis()
-
-        default_lat = self.hass.config.latitude
-        default_lon = self.hass.config.longitude
+                name = user_input.get(CONF_NAME) or sector["sector_name"]
+                return self.async_create_entry(
+                    title=t("device_name", self.hass, name=name),
+                    data={
+                        CONF_MODE: MODE_BULLETIN,
+                        CONF_NAME: name,
+                        CONF_LATITUDE: lat,
+                        CONF_LONGITUDE: lon,
+                    },
+                )
 
         schema = vol.Schema(
             {
                 vol.Optional(CONF_NAME): str,
-                vol.Required(CONF_LATITUDE, default=default_lat): vol.Coerce(float),
-                vol.Required(CONF_LONGITUDE, default=default_lon): vol.Coerce(float),
+                vol.Required(CONF_LATITUDE, default=self.hass.config.latitude): vol.Coerce(float),
+                vol.Required(CONF_LONGITUDE, default=self.hass.config.longitude): vol.Coerce(float),
             }
         )
-        return self.async_show_form(step_id="user", data_schema=schema, errors=errors)
+        return self.async_show_form(step_id="bulletin", data_schema=schema, errors=errors)
 
     async def async_step_imis(self, user_input: dict[str, Any] | None = None) -> FlowResult:
-        """Optionally select favourite IMIS measuring stations (any, not just nearby)."""
+        """Set up favourite IMIS measuring stations (independent of a bulletin)."""
+        errors: dict[str, str] = {}
+
         if user_input is not None:
             stations = _selected_stations(
                 self._stations, user_input.get(CONF_IMIS_STATIONS) or []
             )
-            return self.async_create_entry(
-                title=t("device_name", self.hass, name=self._location[CONF_NAME]),
-                data={**self._location, CONF_IMIS_STATIONS: stations},
-            )
+            if not stations:
+                errors[CONF_IMIS_STATIONS] = "no_station"
+            else:
+                return self.async_create_entry(
+                    title=_imis_title(stations),
+                    data={CONF_MODE: MODE_IMIS, CONF_IMIS_STATIONS: stations},
+                )
 
-        try:
-            stations = await async_fetch_stations(self.hass)
-        except Exception:
-            # The measurement API being down must not block the bulletin setup.
-            return self.async_create_entry(
-                title=t("device_name", self.hass, name=self._location[CONF_NAME]),
-                data={**self._location, CONF_IMIS_STATIONS: []},
+        if not self._stations:
+            try:
+                stations = await async_fetch_stations(self.hass)
+            except Exception:
+                return self.async_abort(reason="imis_unavailable")
+            self._stations = stations_by_distance(
+                stations, self.hass.config.latitude, self.hass.config.longitude
             )
-
-        self._stations = stations_by_distance(
-            stations, self._location[CONF_LATITUDE], self._location[CONF_LONGITUDE]
-        )
 
         schema = vol.Schema(
             {
-                vol.Optional(CONF_IMIS_STATIONS, default=[]): SelectSelector(
+                vol.Required(CONF_IMIS_STATIONS, default=[]): SelectSelector(
                     SelectSelectorConfig(
                         options=_station_options(self._stations),
                         multiple=True,
@@ -149,7 +167,7 @@ class SlfAvalancheConfigFlow(ConfigFlow, domain=DOMAIN):
                 ),
             }
         )
-        return self.async_show_form(step_id="imis", data_schema=schema)
+        return self.async_show_form(step_id="imis", data_schema=schema, errors=errors)
 
     @staticmethod
     @callback
@@ -158,30 +176,37 @@ class SlfAvalancheConfigFlow(ConfigFlow, domain=DOMAIN):
 
 
 class SlfAvalancheOptionsFlow(OptionsFlow):
-    """Manage the favourite IMIS stations of an existing location entry."""
+    """Manage the favourite IMIS stations of an IMIS entry."""
 
     def __init__(self) -> None:
         self._stations: list[dict] = []
 
     async def async_step_init(self, user_input: dict[str, Any] | None = None) -> FlowResult:
-        errors: dict[str, str] = {}
+        entry = self.config_entry
+        if entry.data.get(CONF_MODE, MODE_BULLETIN) != MODE_IMIS:
+            return self.async_abort(reason="no_options")
 
+        errors: dict[str, str] = {}
         if user_input is not None:
             stations = _selected_stations(
                 self._stations, user_input.get(CONF_IMIS_STATIONS) or []
             )
-            return self.async_create_entry(title="", data={CONF_IMIS_STATIONS: stations})
+            if not stations:
+                errors[CONF_IMIS_STATIONS] = "no_station"
+            else:
+                return self.async_create_entry(
+                    title="", data={CONF_IMIS_STATIONS: stations}
+                )
 
-        try:
-            stations = await async_fetch_stations(self.hass)
-        except Exception:
-            errors["base"] = "cannot_connect"
-            return self.async_show_form(step_id="init", errors=errors)
+        if not self._stations:
+            try:
+                stations = await async_fetch_stations(self.hass)
+            except Exception:
+                return self.async_abort(reason="imis_unavailable")
+            self._stations = stations_by_distance(
+                stations, self.hass.config.latitude, self.hass.config.longitude
+            )
 
-        entry = self.config_entry
-        self._stations = stations_by_distance(
-            stations, entry.data[CONF_LATITUDE], entry.data[CONF_LONGITUDE]
-        )
         current = entry.options.get(
             CONF_IMIS_STATIONS, entry.data.get(CONF_IMIS_STATIONS) or []
         )
@@ -189,7 +214,7 @@ class SlfAvalancheOptionsFlow(OptionsFlow):
 
         schema = vol.Schema(
             {
-                vol.Optional(CONF_IMIS_STATIONS, default=current_codes): SelectSelector(
+                vol.Required(CONF_IMIS_STATIONS, default=current_codes): SelectSelector(
                     SelectSelectorConfig(
                         options=_station_options(self._stations),
                         multiple=True,

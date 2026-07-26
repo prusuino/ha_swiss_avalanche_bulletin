@@ -3,7 +3,15 @@
     "step": {
       "user": {
         "title": "Bollettino valanghe Svizzera (SLF)",
-        "description": "Configura il bollettino valanghe svizzero (SLF) per una posizione. Latitudine/longitudine corrispondono per impostazione predefinita alla posizione di casa di Home Assistant, ma possono essere modificate per qualsiasi luogo in/vicino alla Svizzera. Aggiungi di nuovo l'integrazione per monitorare un'altra posizione.",
+        "description": "Scegli cosa configurare: il bollettino valanghe per una posizione oppure stazioni di misura IMIS preferite (altezza della neve, temperature, vento) — indipendenti l'uno dall'altro. Aggiungi di nuovo l'integrazione per altre posizioni o stazioni.",
+        "menu_options": {
+          "bulletin": "Bollettino valanghe per una posizione",
+          "imis": "Stazioni di misura IMIS (preferite)"
+        }
+      },
+      "bulletin": {
+        "title": "Bollettino valanghe",
+        "description": "Configura il bollettino valanghe svizzero (SLF) per una posizione. Latitudine/longitudine corrispondono per impostazione predefinita alla posizione di casa di Home Assistant, ma possono essere modificate per qualsiasi luogo in/vicino alla Svizzera.",
         "data": {
           "name": "Etichetta (opzionale, p.es. \"Casa\" o \"Baita\")",
           "latitude": "Latitudine",
@@ -11,32 +19,38 @@
         }
       },
       "imis": {
-        "title": "Stazioni di misura IMIS (opzionale)",
-        "description": "Aggiungi in opzione stazioni di misura IMIS dell'SLF come preferite: altezza della neve, neve fresca, temperature e vento, aggiornati ogni 30 minuti. È possibile selezionare qualsiasi stazione — l'elenco è ordinato per distanza da questa posizione (❄ stazione neve, 🌬 stazione vento), digita per cercare. Le preferite possono essere modificate in seguito tramite le opzioni dell'integrazione. Lascia vuoto per saltare.",
+        "title": "Stazioni di misura IMIS",
+        "description": "Seleziona le tue stazioni di misura IMIS preferite dell'SLF: altezza della neve, neve fresca, temperature e vento, aggiornati ogni 30 minuti. È possibile selezionare qualsiasi stazione — l'elenco è ordinato per distanza dalla posizione di casa (❄ stazione neve, 🌬 stazione vento), digita per cercare. Le preferite possono essere modificate in seguito tramite le opzioni dell'integrazione.",
         "data": {
           "imis_stations": "Stazioni"
         }
       }
     },
     "abort": {
-      "already_configured": "Questa posizione è già configurata."
+      "already_configured": "Questa posizione è già configurata.",
+      "imis_unavailable": "Impossibile recuperare l'elenco delle stazioni IMIS. Riprova più tardi."
     },
     "error": {
-      "cannot_connect": "Impossibile determinare la regione di allerta SLF per queste coordinate."
+      "cannot_connect": "Impossibile determinare la regione di allerta SLF per queste coordinate.",
+      "no_station": "Seleziona almeno una stazione."
     }
   },
   "options": {
     "step": {
       "init": {
         "title": "Stazioni di misura IMIS",
-        "description": "Gestisci le stazioni di misura IMIS preferite di questa posizione. L'elenco è ordinato per distanza (❄ stazione neve, 🌬 stazione vento), digita per cercare.",
+        "description": "Gestisci le stazioni di misura IMIS preferite di questa voce. L'elenco è ordinato per distanza (❄ stazione neve, 🌬 stazione vento), digita per cercare.",
         "data": {
           "imis_stations": "Stazioni"
         }
       }
     },
+    "abort": {
+      "no_options": "Questa voce non ha opzioni — il bollettino segue la posizione configurata.",
+      "imis_unavailable": "Impossibile recuperare l'elenco delle stazioni IMIS. Riprova più tardi."
+    },
     "error": {
-      "cannot_connect": "Impossibile recuperare l'elenco delle stazioni IMIS. Riprova più tardi."
+      "no_station": "Seleziona almeno una stazione."
     }
   }
 }

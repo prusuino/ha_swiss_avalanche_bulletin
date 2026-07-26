@@ -16,6 +16,12 @@ CONF_NAME = "name"
 CONF_LATITUDE = "latitude"
 CONF_LONGITUDE = "longitude"
 CONF_IMIS_STATIONS = "imis_stations"
+CONF_MODE = "mode"
+
+MODE_BULLETIN = "bulletin"
+MODE_IMIS = "imis"
+
+STATIC_URL_BASE = "/slf_avalanche/static"
 
 # CAAML dangerRating mainValue -> EAWS 5-level danger scale (1-5). Canonical,
 # language-independent — display text is looked up via localization.py.

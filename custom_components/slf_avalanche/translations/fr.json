@@ -3,7 +3,15 @@
     "step": {
       "user": {
         "title": "Bulletin d'avalanches Suisse (SLF)",
-        "description": "Configure le bulletin d'avalanches suisse (SLF) pour un emplacement. La latitude/longitude correspondent par défaut à l'emplacement de votre domicile Home Assistant, mais peuvent être modifiées pour tout endroit en/près de Suisse. Ajoutez à nouveau l'intégration pour suivre un autre emplacement.",
+        "description": "Choisissez ce qu'il faut configurer : le bulletin d'avalanches pour un emplacement, ou des stations de mesure IMIS favorites (hauteur de neige, températures, vent) — indépendants l'un de l'autre. Ajoutez à nouveau l'intégration pour d'autres emplacements ou stations.",
+        "menu_options": {
+          "bulletin": "Bulletin d'avalanches pour un emplacement",
+          "imis": "Stations de mesure IMIS (favorites)"
+        }
+      },
+      "bulletin": {
+        "title": "Bulletin d'avalanches",
+        "description": "Configure le bulletin d'avalanches suisse (SLF) pour un emplacement. La latitude/longitude correspondent par défaut à l'emplacement de votre domicile Home Assistant, mais peuvent être modifiées pour tout endroit en/près de Suisse.",
         "data": {
           "name": "Libellé (optionnel, p.ex. « Domicile » ou « Chalet »)",
           "latitude": "Latitude",
@@ -11,32 +19,38 @@
         }
       },
       "imis": {
-        "title": "Stations de mesure IMIS (optionnel)",
-        "description": "Ajoutez en option des stations de mesure IMIS du SLF comme favorites : hauteur de neige, neige fraîche, températures et vent, mis à jour toutes les 30 minutes. N'importe quelle station peut être sélectionnée — la liste est triée par distance depuis cet emplacement (❄ station de neige, 🌬 station de vent), tapez pour rechercher. Les favorites peuvent être modifiées plus tard via les options de l'intégration. Laissez vide pour ignorer.",
+        "title": "Stations de mesure IMIS",
+        "description": "Sélectionnez vos stations de mesure IMIS favorites du SLF : hauteur de neige, neige fraîche, températures et vent, mis à jour toutes les 30 minutes. N'importe quelle station peut être sélectionnée — la liste est triée par distance depuis votre domicile (❄ station de neige, 🌬 station de vent), tapez pour rechercher. Les favorites peuvent être modifiées plus tard via les options de l'intégration.",
         "data": {
           "imis_stations": "Stations"
         }
       }
     },
     "abort": {
-      "already_configured": "Cet emplacement est déjà configuré."
+      "already_configured": "Cet emplacement est déjà configuré.",
+      "imis_unavailable": "Impossible de récupérer la liste des stations IMIS. Veuillez réessayer plus tard."
     },
     "error": {
-      "cannot_connect": "Impossible de déterminer la région d'avertissement SLF pour ces coordonnées."
+      "cannot_connect": "Impossible de déterminer la région d'avertissement SLF pour ces coordonnées.",
+      "no_station": "Sélectionnez au moins une station."
     }
   },
   "options": {
     "step": {
       "init": {
         "title": "Stations de mesure IMIS",
-        "description": "Gérez les stations de mesure IMIS favorites de cet emplacement. La liste est triée par distance (❄ station de neige, 🌬 station de vent), tapez pour rechercher.",
+        "description": "Gérez les stations de mesure IMIS favorites de cette entrée. La liste est triée par distance (❄ station de neige, 🌬 station de vent), tapez pour rechercher.",
         "data": {
           "imis_stations": "Stations"
         }
       }
     },
+    "abort": {
+      "no_options": "Cette entrée n'a pas d'options — le bulletin suit son emplacement configuré.",
+      "imis_unavailable": "Impossible de récupérer la liste des stations IMIS. Veuillez réessayer plus tard."
+    },
     "error": {
-      "cannot_connect": "Impossible de récupérer la liste des stations IMIS. Veuillez réessayer plus tard."
+      "no_station": "Sélectionnez au moins une station."
     }
   }
 }

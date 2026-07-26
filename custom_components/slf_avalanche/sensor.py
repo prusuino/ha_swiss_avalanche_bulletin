@@ -50,14 +50,16 @@ async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
     data: RuntimeData = hass.data[DOMAIN][entry.entry_id]
-    coordinator = data.bulletin
 
-    entities: list[SensorEntity] = [
-        SlfDangerLevelSensor(hass, coordinator, entry),
-        SlfRegionSensor(hass, coordinator, entry),
-    ]
-    for i in range(MAX_PROBLEM_SENSORS):
-        entities.append(SlfProblemSensor(hass, coordinator, entry, i))
+    entities: list[SensorEntity] = []
+    if data.bulletin is not None:
+        coordinator = data.bulletin
+        entities += [
+            SlfDangerLevelSensor(hass, coordinator, entry),
+            SlfRegionSensor(hass, coordinator, entry),
+        ]
+        for i in range(MAX_PROBLEM_SENSORS):
+            entities.append(SlfProblemSensor(hass, coordinator, entry, i))
 
     if data.imis is not None:
         for station in data.imis.stations:

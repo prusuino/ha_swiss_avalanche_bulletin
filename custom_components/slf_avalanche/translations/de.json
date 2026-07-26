@@ -3,7 +3,15 @@
     "step": {
       "user": {
         "title": "SLF Lawinenbulletin",
-        "description": "Richtet das Schweizer Lawinenbulletin (SLF) für einen Standort ein. Breiten-/Längengrad sind standardmässig der Home-Assistant-Heimatstandort, können aber auf jeden Ort in/nahe der Schweiz geändert werden. Integration erneut hinzufügen, um einen weiteren Standort zu verfolgen.",
+        "description": "Wähle, was eingerichtet werden soll: das Lawinenbulletin für einen Standort oder IMIS-Messstationen-Favoriten (Schneehöhe, Temperaturen, Wind) — unabhängig voneinander. Integration erneut hinzufügen für weitere Standorte oder Stationen.",
+        "menu_options": {
+          "bulletin": "Lawinenbulletin für einen Standort",
+          "imis": "IMIS-Messstationen (Favoriten)"
+        }
+      },
+      "bulletin": {
+        "title": "Lawinenbulletin",
+        "description": "Richtet das Schweizer Lawinenbulletin (SLF) für einen Standort ein. Breiten-/Längengrad sind standardmässig der Home-Assistant-Heimatstandort, können aber auf jeden Ort in/nahe der Schweiz geändert werden.",
         "data": {
           "name": "Bezeichnung (optional, z.B. \"Zuhause\" oder \"Ferienhaus\")",
           "latitude": "Breitengrad",
@@ -11,32 +19,38 @@
         }
       },
       "imis": {
-        "title": "IMIS-Messstationen (optional)",
-        "description": "Optional IMIS-Messstationen des SLF als Favoriten hinzufügen: Schneehöhe, Neuschnee, Temperaturen und Wind, alle 30 Minuten aktualisiert. Es sind beliebige Stationen wählbar — die Liste ist nach Distanz zu diesem Standort sortiert (❄ Schneestation, 🌬 Windstation), zum Suchen einfach tippen. Favoriten lassen sich später über die Integrations-Optionen ändern. Leer lassen zum Überspringen.",
+        "title": "IMIS-Messstationen",
+        "description": "Wähle deine IMIS-Messstationen-Favoriten des SLF: Schneehöhe, Neuschnee, Temperaturen und Wind, alle 30 Minuten aktualisiert. Es sind beliebige Stationen wählbar — die Liste ist nach Distanz zum Heimatstandort sortiert (❄ Schneestation, 🌬 Windstation), zum Suchen einfach tippen. Favoriten lassen sich später über die Integrations-Optionen ändern.",
         "data": {
           "imis_stations": "Stationen"
         }
       }
     },
     "abort": {
-      "already_configured": "Dieser Standort ist bereits konfiguriert."
+      "already_configured": "Dieser Standort ist bereits konfiguriert.",
+      "imis_unavailable": "Die IMIS-Stationsliste konnte nicht geladen werden. Bitte später erneut versuchen."
     },
     "error": {
-      "cannot_connect": "Die SLF-Warnregion konnte für diese Koordinaten nicht ermittelt werden."
+      "cannot_connect": "Die SLF-Warnregion konnte für diese Koordinaten nicht ermittelt werden.",
+      "no_station": "Bitte mindestens eine Station auswählen."
     }
   },
   "options": {
     "step": {
       "init": {
         "title": "IMIS-Messstationen",
-        "description": "Verwalte die IMIS-Messstationen-Favoriten dieses Standorts. Die Liste ist nach Distanz sortiert (❄ Schneestation, 🌬 Windstation), zum Suchen einfach tippen.",
+        "description": "Verwalte die IMIS-Messstationen-Favoriten dieses Eintrags. Die Liste ist nach Distanz sortiert (❄ Schneestation, 🌬 Windstation), zum Suchen einfach tippen.",
         "data": {
           "imis_stations": "Stationen"
         }
       }
     },
+    "abort": {
+      "no_options": "Dieser Eintrag hat keine Optionen — das Bulletin folgt seinem konfigurierten Standort.",
+      "imis_unavailable": "Die IMIS-Stationsliste konnte nicht geladen werden. Bitte später erneut versuchen."
+    },
     "error": {
-      "cannot_connect": "Die IMIS-Stationsliste konnte nicht geladen werden. Bitte später erneut versuchen."
+      "no_station": "Bitte mindestens eine Station auswählen."
     }
   }
 }

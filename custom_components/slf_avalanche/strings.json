@@ -3,7 +3,15 @@
     "step": {
       "user": {
         "title": "Swiss Avalanche Bulletin (SLF)",
-        "description": "Sets up the Swiss avalanche bulletin (SLF) for a location. Latitude/longitude default to your Home Assistant home location, but can be changed to any location in/near Switzerland. Add the integration again to track another location.",
+        "description": "Choose what to set up: the avalanche bulletin for a location, or favourite IMIS measuring stations (snow depth, temperatures, wind) — independent of each other. Add the integration again for more locations or stations.",
+        "menu_options": {
+          "bulletin": "Avalanche bulletin for a location",
+          "imis": "IMIS measuring stations (favourites)"
+        }
+      },
+      "bulletin": {
+        "title": "Avalanche bulletin",
+        "description": "Sets up the Swiss avalanche bulletin (SLF) for a location. Latitude/longitude default to your Home Assistant home location, but can be changed to any location in/near Switzerland.",
         "data": {
           "name": "Label (optional, e.g. \"Home\" or \"Cabin\")",
           "latitude": "Latitude",
@@ -11,32 +19,38 @@
         }
       },
       "imis": {
-        "title": "IMIS measuring stations (optional)",
-        "description": "Optionally add favourite IMIS measuring stations of the SLF: snow depth, new snow, temperatures and wind, updated every 30 minutes. Any station can be selected — the list is sorted by distance from this location (❄ snow station, 🌬 wind station), type to search. Favourites can be changed later via the integration options. Leave empty to skip.",
+        "title": "IMIS measuring stations",
+        "description": "Select your favourite IMIS measuring stations of the SLF: snow depth, new snow, temperatures and wind, updated every 30 minutes. Any station can be selected — the list is sorted by distance from your home location (❄ snow station, 🌬 wind station), type to search. Favourites can be changed later via the integration options.",
         "data": {
           "imis_stations": "Stations"
         }
       }
     },
     "abort": {
-      "already_configured": "This location is already configured."
+      "already_configured": "This location is already configured.",
+      "imis_unavailable": "The IMIS station list could not be fetched. Please try again later."
     },
     "error": {
-      "cannot_connect": "Could not determine the SLF warning region for these coordinates."
+      "cannot_connect": "Could not determine the SLF warning region for these coordinates.",
+      "no_station": "Select at least one station."
     }
   },
   "options": {
     "step": {
       "init": {
         "title": "IMIS measuring stations",
-        "description": "Manage the favourite IMIS measuring stations of this location. The list is sorted by distance (❄ snow station, 🌬 wind station), type to search.",
+        "description": "Manage the favourite IMIS measuring stations of this entry. The list is sorted by distance (❄ snow station, 🌬 wind station), type to search.",
         "data": {
           "imis_stations": "Stations"
         }
       }
     },
+    "abort": {
+      "no_options": "This entry has no options — the bulletin follows its configured location.",
+      "imis_unavailable": "The IMIS station list could not be fetched. Please try again later."
+    },
     "error": {
-      "cannot_connect": "Could not fetch the IMIS station list. Please try again later."
+      "no_station": "Select at least one station."
     }
   }
 }
