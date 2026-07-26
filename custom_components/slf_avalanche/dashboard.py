@@ -45,7 +45,7 @@ _LOGGER = logging.getLogger(__name__)
 DASHBOARD_URL_PATH = "slf-lawinen"
 DASHBOARD_ICON = "mdi:snowflake-alert"
 
-CARD_VERSION = "1.0.0"
+CARD_VERSION = "1.0.1"
 CARD_RESOURCE_BASE = f"{STATIC_URL_BASE}/slf-imis-card.js"
 CARD_RESOURCE_URL = f"{CARD_RESOURCE_BASE}?v={CARD_VERSION}"
 

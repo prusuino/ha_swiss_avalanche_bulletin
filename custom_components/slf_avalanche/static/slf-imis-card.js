@@ -106,10 +106,13 @@ class SlfImisStationCard extends HTMLElement {
     const r = this.attachShadow ? (this.shadowRoot || this.attachShadow({ mode: 'open' })) : this;
     r.innerHTML = `
       <style>
-        ha-card { padding: 16px; }
+        :host { display: block; height: 100%; }
+        ha-card { padding: 16px; height: 100%; box-sizing: border-box;
+                  display: flex; flex-direction: column; }
         .head { display: flex; justify-content: space-between; align-items: baseline; gap: 8px; }
         .name { font-size: 1.05rem; font-weight: 600; }
         .meta { color: var(--secondary-text-color); font-size: .8rem; white-space: nowrap; }
+        #body { flex: 1; }
         .hero { display: flex; align-items: center; gap: 14px; margin: 14px 0 6px; }
         .hero .icon { font-size: 2.2rem; line-height: 1; }
         .hero .value { font-size: 2.4rem; font-weight: 300; line-height: 1; }
@@ -117,9 +120,12 @@ class SlfImisStationCard extends HTMLElement {
         .hero .label { color: var(--secondary-text-color); font-size: .8rem; margin-top: 2px; }
         .chip { display: inline-block; background: var(--secondary-background-color); border-radius: 12px;
                 padding: 2px 10px; font-size: .8rem; margin: 2px 4px 2px 0; }
-        .rows { margin-top: 10px; display: grid; grid-template-columns: 1fr 1fr; gap: 6px 12px; }
-        .row { display: flex; justify-content: space-between; gap: 8px; font-size: .9rem; }
-        .row .k { color: var(--secondary-text-color); }
+        .rows { margin-top: 10px; display: flex; flex-direction: column; gap: 6px; }
+        .row { display: flex; justify-content: space-between; align-items: baseline;
+               gap: 12px; font-size: .9rem; }
+        .row .k { color: var(--secondary-text-color); overflow: hidden;
+                  text-overflow: ellipsis; white-space: nowrap; }
+        .row .v { white-space: nowrap; }
         .wind-arrow { display: inline-block; }
         .foot { margin-top: 12px; color: var(--secondary-text-color); font-size: .72rem;
                 display: flex; justify-content: space-between; gap: 8px; flex-wrap: wrap; }
@@ -181,7 +187,7 @@ class SlfImisStationCard extends HTMLElement {
     }
     if (rows.length) {
       html += `<div class="rows">${rows.map(([k, v]) =>
-        `<div class="row"><span class="k">${slfImisEsc(k)}</span><span>${v}</span></div>`).join('')}</div>`;
+        `<div class="row"><span class="k">${slfImisEsc(k)}</span><span class="v">${v}</span></div>`).join('')}</div>`;
     }
     if (!html) html = `<div class="rows">${L.no_data}</div>`;
     this._el.body.innerHTML = html;
