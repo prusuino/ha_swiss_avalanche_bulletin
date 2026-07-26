@@ -4,7 +4,7 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 <a href="https://www.buymeacoffee.com/prusuino"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" height="20"></a>
 
-A Home Assistant custom integration for the official Swiss **avalanche bulletin**, published by the **WSL Institute for Snow and Avalanche Research (SLF)**.
+A Home Assistant custom integration for the official Swiss **avalanche bulletin**, published by the **WSL Institute for Snow and Avalanche Research (SLF)** — and, independently of it, for the **IMIS measuring stations** of the SLF: snow depth, new snow, temperatures and wind from ~200 automatic high-alpine stations.
 
 ## Background
 
@@ -29,6 +29,24 @@ Per configured location:
 
 Data is refreshed every hour. The bulletin itself is typically published once daily (around 17:00), with interim updates during high-danger situations.
 
+## IMIS measuring stations
+
+The Intercantonal Measurement and Information System (IMIS) consists of about 200 automatic stations in the Swiss Alps and Jura, most between 2000 and 3000 m. When adding the integration, choose **"IMIS measuring stations"** to pick any stations as favourites — the searchable list is sorted by distance from your home location (❄ snow station, 🌬 wind station), and the favourites can be changed at any time via the integration options.
+
+Each station becomes a device with sensors for what it actually measures, updated every 30 minutes via the **official, documented SLF measurement API** ([measurement-api.slf.ch](https://measurement-api.slf.ch/)):
+
+| Sensor | Stations |
+|---|---|
+| Snow depth (cm) and new snow last 24 h (cm) | snow stations |
+| Air temperature, snow surface temperature, humidity | most stations |
+| Wind speed, gusts, direction | wind stations and many snow stations |
+
+## Bundled card & dashboard
+
+The integration ships a Lovelace card, **SLF IMIS Station** (`custom:slf-imis-station-card`), with a visual editor — snow depth as the hero value, temperatures, wind with direction arrow, measurement age and the required SLF attribution. It is registered automatically and available in the normal card picker.
+
+On first setup an **"Avalanches" dashboard** is created automatically: one section per bulletin location (danger level and region tiles) and a section with a station card per IMIS favourite. Your own edits are never overwritten, and the dashboard is removed again when the last entry is deleted.
+
 ## Language
 
 Entity names, device info, and the danger-level/avalanche-problem text all follow the official multilingual EAWS (European Avalanche Warning Services) terminology and adapt automatically to your Home Assistant language setting — German, English, French, and Italian are supported, with English as the fallback for any other language.
@@ -50,12 +68,13 @@ Entity names, device info, and the danger-level/avalanche-problem text all follo
 
 1. Go to **Settings → Devices & Services → Add Integration**.
 2. Search for **"Swiss Avalanche Bulletin (SLF)"**.
-3. Latitude/longitude default to your Home Assistant home location — adjust if you want a different location (e.g. a specific mountain area), and optionally give it a label.
-4. Done. Add the integration again for additional locations.
+3. Choose what to set up: **avalanche bulletin for a location** or **IMIS measuring stations**.
+4. Bulletin: latitude/longitude default to your Home Assistant home location — adjust if you want a different location (e.g. a specific mountain area), and optionally give it a label. Stations: pick any stations from the searchable list.
+5. Done. Add the integration again for additional locations or station sets.
 
 ## Data source & license
 
-This integration reads live data from the SLF's public API. That data is licensed under **[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)**, separate from this repository's MIT license — see [NOTICE.md](NOTICE.md) for the required attribution. Every sensor sets Home Assistant's `attribution` attribute accordingly.
+This integration reads live data from the SLF's public bulletin API (`aws.slf.ch`) and the official SLF measurement API (`measurement-api.slf.ch`). That data is licensed under **[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)**, separate from this repository's MIT license — see [NOTICE.md](NOTICE.md) for the required attribution. Every sensor and the bundled card set the SLF attribution accordingly.
 
 ## Notes
 

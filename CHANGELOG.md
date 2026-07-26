@@ -1,5 +1,24 @@
 # Changelog
 
+## 1.1.0 — 2026-07-26
+
+IMIS measuring stations — snow depth, temperatures and wind in Home Assistant.
+
+- New setup choice when adding the integration: avalanche bulletin for a
+  location, or favourite IMIS measuring stations (independent of each other)
+- Any of the ~200 IMIS stations can be selected as favourites from a
+  searchable list sorted by distance; favourites are manageable at any time
+  via the integration options
+- One device per station with sensors for what it actually measures: snow
+  depth, new snow last 24 h, air and snow surface temperature, humidity,
+  wind speed/gusts/direction — updated every 30 minutes via the official
+  SLF measurement API (measurement-api.slf.ch, CC BY 4.0)
+- New Lovelace card `custom:slf-imis-station-card` with visual editor,
+  bundled and registered automatically
+- Automatically created "Avalanches" dashboard with one section per
+  bulletin location and station cards for the IMIS favourites (user edits
+  are never overwritten; removed again with the last entry)
+
 ## 1.0.0 — 2026-07-16
 
 Initial public release.
