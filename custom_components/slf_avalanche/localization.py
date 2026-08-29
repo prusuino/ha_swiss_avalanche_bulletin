@@ -54,18 +54,6 @@ STRINGS: dict[str, dict[str, str]] = {
         "fr": "Problème d'avalanche {n}",
         "it": "Problema valanghe {n}",
     },
-    "dashboard_title": {
-        "de": "Lawinen",
-        "en": "Avalanches",
-        "fr": "Avalanches",
-        "it": "Valanghe",
-    },
-    "imis_section_heading": {
-        "de": "IMIS-Messstationen",
-        "en": "IMIS Measuring Stations",
-        "fr": "Stations de mesure IMIS",
-        "it": "Stazioni di misura IMIS",
-    },
     "imis_device_name": {
         "de": "IMIS-Station {name}",
         "en": "IMIS Station {name}",

@@ -1,5 +1,43 @@
 # Changelog
 
+## 1.2.0 — 2026-08-29
+
+The integration no longer creates or deletes dashboards and Lovelace
+resources. Writing into another component's storage is not something an
+integration should do on its own initiative, and the previous
+implementation relied on internal Home Assistant APIs that carry no
+stability guarantee — a change upstream could break setup or leave a
+dashboard behind that had to be repaired by hand.
+
+**Breaking:**
+
+- The automatically created "Avalanches" dashboard is gone. Existing
+  dashboards are left untouched — this release simply stops creating,
+  extending and deleting them. If you want to keep the dashboard you
+  already have, do nothing; it is now yours to edit freely.
+- The bundled card is no longer registered as a Lovelace resource
+  automatically. Register it once under **Settings → Dashboards → ⋮ →
+  Resources** with the URL `/slf_avalanche/static/slf-imis-card.js` and
+  type *JavaScript module*. The README has step-by-step instructions and
+  example card configurations.
+
+**Unchanged:**
+
+- The card itself still ships with the integration and is still served
+  under `/slf_avalanche/static/`. Once registered, it works exactly as
+  before, including the visual editor.
+- All sensors, devices, coordinators and the IMIS station handling are
+  untouched.
+
+**Other:**
+
+- Minimum Home Assistant version declared as 2024.12.0, matching what the
+  options flow actually requires. It was previously declared as 2024.1.0,
+  where the options dialog would have failed.
+- Added `translations/en.json`. English users previously saw raw
+  translation keys in the setup and options dialogs, because `strings.json`
+  is not read at runtime for custom integrations.
+
 ## 1.1.0 — 2026-07-26
 
 IMIS measuring stations — snow depth, temperatures and wind in Home Assistant.

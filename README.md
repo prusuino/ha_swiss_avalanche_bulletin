@@ -41,11 +41,46 @@ Each station becomes a device with sensors for what it actually measures, update
 | Air temperature, snow surface temperature, humidity | most stations |
 | Wind speed, gusts, direction | wind stations and many snow stations |
 
-## Bundled card & dashboard
+## Bundled card
 
-The integration ships a Lovelace card, **SLF IMIS Station** (`custom:slf-imis-station-card`), with a visual editor — snow depth as the hero value, temperatures, wind with direction arrow, measurement age and the required SLF attribution. It is registered automatically and available in the normal card picker.
+The integration ships a Lovelace card, **SLF IMIS Station** (`custom:slf-imis-station-card`), with a visual editor — snow depth as the hero value, temperatures, wind with direction arrow, measurement age and the required SLF attribution.
 
-On first setup an **"Avalanches" dashboard** is created automatically: one section per bulletin location (danger level and region tiles) and a section with a station card per IMIS favourite. Your own edits are never overwritten, and the dashboard is removed again when the last entry is deleted.
+The card file is served by the integration, but you register it as a Lovelace resource yourself — the integration does not write to your dashboard configuration.
+
+### 1. Register the card resource (once)
+
+1. Go to **Settings → Dashboards → ⋮ (top right) → Resources → + Add resource**. The *Resources* entry is only shown when **Advanced mode** is enabled in your user profile (click your name at the bottom of the sidebar).
+2. URL: `/slf_avalanche/static/slf-imis-card.js`
+3. Resource type: **JavaScript module**
+4. Reload the page.
+
+The card then appears as **SLF IMIS Station** in the normal card picker, with its visual editor.
+
+> **After updating the integration:** the card is served without a version query string, so your browser may keep the old copy cached. If a new card feature does not show up, do a hard reload (Ctrl+F5 / Cmd+Shift+R), or append a version to the resource URL (e.g. `/slf_avalanche/static/slf-imis-card.js?v=2`) to force a refresh.
+
+### 2. Build your dashboard
+
+Add the cards wherever you like. An IMIS station card takes the station code in lower case (visible in the integration options, e.g. `slf2`):
+
+```yaml
+type: custom:slf-imis-station-card
+station: slf2
+```
+
+For a bulletin location, plain tile cards on the two sensors work well:
+
+```yaml
+type: tile
+entity: sensor.slf_avalanche_danger_level_home
+color: red
+```
+
+```yaml
+type: tile
+entity: sensor.slf_avalanche_region_home
+```
+
+Replace `home` with your location label, and check the exact entity IDs under **Settings → Devices & Services → Entities**.
 
 ## Language
 

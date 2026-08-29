@@ -1,5 +1,6 @@
-/* SLF IMIS station card — shipped and auto-registered by the Swiss
- * Avalanche Bulletin integration.
+/* SLF IMIS station card — shipped by the Swiss Avalanche Bulletin
+ * integration and served under /slf_avalanche/static/. Register it once
+ * as a Lovelace resource (JavaScript module); see the README.
  *
  *   slf-imis-station-card   snow, temperature and wind of one IMIS station
  *

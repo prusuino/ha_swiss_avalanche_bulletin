@@ -70,10 +70,6 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     hass.data.setdefault(DOMAIN, {})[entry.entry_id] = RuntimeData(bulletin, imis)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
-    from . import dashboard
-
-    await dashboard.async_ensure_dashboard(hass, entry)
-
     async def _options_updated(hass: HomeAssistant, entry: ConfigEntry) -> None:
         # Favourite stations changed -> rebuild coordinators and entities.
         await hass.config_entries.async_reload(entry.entry_id)
@@ -104,14 +100,3 @@ async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     if unloaded:
         hass.data[DOMAIN].pop(entry.entry_id)
     return unloaded
-
-
-async def async_remove_entry(hass: HomeAssistant, entry: ConfigEntry) -> None:
-    """Clean up the auto-created dashboard when the last entry is removed."""
-    remaining = [
-        e for e in hass.config_entries.async_entries(DOMAIN) if e.entry_id != entry.entry_id
-    ]
-    if not remaining:
-        from . import dashboard
-
-        await dashboard.async_remove_dashboard(hass)
