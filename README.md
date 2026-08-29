@@ -1,6 +1,6 @@
 # Swiss Avalanche Bulletin (SLF)
 
-[![hacs_badge](https://img.shields.io/badge/HACS-Custom-41BDF5.svg)](https://github.com/hacs/integration)
+[![hacs_badge](https://img.shields.io/badge/HACS-Default-41BDF5.svg)](https://github.com/hacs/integration)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 <a href="https://www.buymeacoffee.com/prusuino"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" height="20"></a>
 
@@ -27,6 +27,8 @@ Per configured location:
 | `sensor.slf_avalanche_region_<label>` | The SLF warning region name resolved for your coordinates (e.g. "Olten-Gösgen") — lets you confirm the location match is correct |
 | `sensor.slf_avalanche_problem_1/2/3_<label>` | Up to 3 currently reported avalanche problems (e.g. wind-drifted snow, persistent weak layers, wet snow). Each includes elevation range, affected aspects (compass directions), and the SLF's full plain-text explanation. Entities report no value on days with fewer than 3 reported problems |
 
+`<label>` is the label you gave the location when adding it — or, if you left it empty, the name of the resolved SLF warning region — slugified: a location labelled "Home" gets `sensor.slf_avalanche_danger_level_home`, an unlabelled one in the Olten-Gösgen region `sensor.slf_avalanche_danger_level_olten_gosgen`. The integration sets these object ids itself when an entity is first created, so they do not depend on your Home Assistant language — only the displayed names are localized. Like any entity, they can be renamed in the entity settings afterwards.
+
 Data is refreshed every hour. The bulletin itself is typically published once daily (around 17:00), with interim updates during high-danger situations.
 
 ## IMIS measuring stations
@@ -40,6 +42,8 @@ Each station becomes a device with sensors for what it actually measures, update
 | Snow depth (cm) and new snow last 24 h (cm) | snow stations |
 | Air temperature, snow surface temperature, humidity | most stations |
 | Wind speed, gusts, direction | wind stations and many snow stations |
+
+Their entity ids are built from the station code, `sensor.slf_imis_<code>_<measurement>` — e.g. `sensor.slf_imis_slf2_snow_height` — and, like the bulletin sensors, are set by the integration itself, independent of the Home Assistant language.
 
 ## Bundled card & dashboard
 
@@ -153,9 +157,13 @@ Entity names, device info, and the danger-level/avalanche-problem text all follo
 
 ### HACS (recommended)
 
-1. In HACS, go to **Integrations → ⋮ → Custom repositories**, add this repository URL with category **Integration**.
-2. Search for **"Swiss Avalanche Bulletin"** and install.
-3. Restart Home Assistant.
+1. Open **HACS**, search for **"Swiss Avalanche Bulletin"** and download it — or use the button, which opens the integration directly in your HACS:
+
+   [![Open in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=prusuino&repository=ha_swiss_avalanche_bulletin&category=integration)
+
+2. Restart Home Assistant.
+
+Until the integration shows up in the HACS search, the button above adds it as a custom repository.
 
 ### Manual
 
