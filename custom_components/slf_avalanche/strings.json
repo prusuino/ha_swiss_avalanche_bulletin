@@ -28,11 +28,14 @@
     },
     "abort": {
       "already_configured": "This location is already configured.",
-      "imis_unavailable": "The IMIS station list could not be fetched. Please try again later."
+      "imis_unavailable": "The IMIS station list could not be fetched. Please try again later.",
+      "unknown": "Unexpected error. Details are in the Home Assistant log."
     },
     "error": {
       "cannot_connect": "Could not determine the SLF warning region for these coordinates.",
-      "no_station": "Select at least one station."
+      "no_station": "Select at least one station.",
+      "unknown": "Unexpected error. Details are in the Home Assistant log.",
+      "station_already_configured": "At least one of the selected stations is already a favourite of another entry."
     }
   },
   "options": {
@@ -47,10 +50,12 @@
     },
     "abort": {
       "no_options": "This entry has no options — the bulletin follows its configured location.",
-      "imis_unavailable": "The IMIS station list could not be fetched. Please try again later."
+      "imis_unavailable": "The IMIS station list could not be fetched. Please try again later.",
+      "unknown": "Unexpected error. Details are in the Home Assistant log."
     },
     "error": {
-      "no_station": "Select at least one station."
+      "no_station": "Select at least one station.",
+      "station_already_configured": "At least one of the selected stations is already a favourite of another entry."
     }
   }
 }

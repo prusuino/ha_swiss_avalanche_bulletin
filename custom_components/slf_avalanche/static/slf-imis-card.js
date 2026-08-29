@@ -50,7 +50,9 @@ function slfImisEsc(value) {
   }[c]));
 }
 
-/* Station slugs present in the state machine: sensor.slf_imis_<slug>_<key> */
+/* Station slugs present in the state machine: sensor.slf_imis_<slug>_<key>.
+ * The slug is the lower-case station code, followed since 1.3.0 by the
+ * last four characters of the config entry id (e.g. slf2_ab12). */
 function slfImisStations(hass) {
   const found = new Map();
   if (!hass) return [];
@@ -640,8 +642,14 @@ defineDashboardStrategy("swiss-avalanche-bulletin", {
     "Danger level, warning region and avalanche problems per location, plus a card per IMIS station favourite — generated live from the integration.",
   strings: SAB_STRINGS,
 
-  async build({ t, entities, devices, helpers }) {
+  async build({ config, t, entities, devices, helpers }) {
     const { heading, grid, tile, emptyNotice, bySuffix, groupByDevice, deviceName } = helpers;
+
+    // Every section spans the whole view, so its column span has to
+    // follow the user's `max_columns` (the core applies the same value
+    // to the view itself); the default is two columns.
+    const cols = Number((config || {}).max_columns);
+    const columns = Number.isFinite(cols) && cols > 0 ? cols : 2;
 
     // Two kinds of device, told apart by the unique_id scheme of the sensor
     // platform: a bulletin entry owns one device whose entities are
@@ -688,7 +696,7 @@ defineDashboardStrategy("swiss-avalanche-bulletin", {
       ].filter(Boolean);
       // Full width like the old dashboard's sections: the half-width tiles
       // pair up and a problem tile spans the row instead of a quarter page.
-      if (cards.length > 1) bulletinSections.push(grid(cards, 2));
+      if (cards.length > 1) bulletinSections.push(grid(cards, columns));
     }
 
     // --- IMIS stations: one section per entry, one card per station ------
@@ -722,7 +730,9 @@ defineDashboardStrategy("swiss-avalanche-bulletin", {
             .map((entityId) => tile(entityId, { grid_options: { columns: 6 } }))
         );
       }
-      imisSections.push(grid(cards, 2));
+      // Only the heading left: every station of this entry is hidden, so
+      // the section is left out like a hidden bulletin entity is.
+      if (cards.length > 1) imisSections.push(grid(cards, columns));
     }
 
     const sections = [...bulletinSections, ...imisSections];
@@ -740,7 +750,7 @@ defineDashboardStrategy("swiss-avalanche-bulletin", {
         path: "avalanches",
         icon: "mdi:snowflake-alert",
         type: "sections",
-        max_columns: 2,
+        max_columns: columns,
         sections,
       },
     ];

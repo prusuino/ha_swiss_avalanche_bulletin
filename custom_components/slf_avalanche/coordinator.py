@@ -1,9 +1,11 @@
 """DataUpdateCoordinator for the SLF Swiss avalanche bulletin."""
 from __future__ import annotations
 
+import asyncio
 import logging
-from datetime import date, timedelta
+from datetime import timedelta
 
+import aiohttp
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
@@ -21,11 +23,16 @@ from .imis import async_fetch_daily_snow, async_fetch_station_measurements
 
 _LOGGER = logging.getLogger(__name__)
 
+# The SLF service could not be reached, did not answer in time, answered with
+# an error status or with something that is not JSON. Anything else is a bug
+# in this integration and is left to surface as such.
+API_ERRORS = (aiohttp.ClientError, TimeoutError, ValueError)
+
 
 async def async_resolve_sector(hass: HomeAssistant, lat: float, lon: float) -> dict:
     """Determine the SLF warning region (sector) for a coordinate."""
     session = async_get_clientsession(hass)
-    params = {"lat": lat, "lon": lon, "date": date.today().isoformat()}
+    params = {"lat": lat, "lon": lon, "date": dt_util.now().date().isoformat()}
     async with session.get(SECTOR_URL, params=params, timeout=25) as resp:
         if resp.status == 404:
             raise UpdateFailed("No SLF warning region found for these coordinates")
@@ -65,11 +72,15 @@ def _worst_danger_rating(danger_ratings: list[dict]) -> dict | None:
 class SlfAvalancheCoordinator(DataUpdateCoordinator[dict]):
     """Fetches the sector assignment (once) and the bulletin (hourly)."""
 
-    def __init__(self, hass: HomeAssistant, latitude: float, longitude: float) -> None:
+    def __init__(
+        self, hass: HomeAssistant, latitude: float, longitude: float, name: str
+    ) -> None:
         super().__init__(
             hass,
             _LOGGER,
-            name=DOMAIN,
+            # The entry label in the name tells the log lines of several
+            # bulletin entries apart.
+            name=f"{DOMAIN} {name}",
             update_interval=timedelta(minutes=UPDATE_INTERVAL_MINUTES),
         )
         self._latitude = latitude
@@ -82,12 +93,12 @@ class SlfAvalancheCoordinator(DataUpdateCoordinator[dict]):
                 self._sector = await async_resolve_sector(self.hass, self._latitude, self._longitude)
             except UpdateFailed:
                 raise
-            except Exception as err:
+            except API_ERRORS as err:
                 raise UpdateFailed(f"Could not determine the SLF warning region: {err}") from err
 
         try:
             bulletin = await async_fetch_bulletin(self.hass)
-        except Exception as err:
+        except API_ERRORS as err:
             raise UpdateFailed(f"SLF bulletin unreachable: {err}") from err
 
         region_id = f"CH-{self._sector['sector_id']}"
@@ -126,20 +137,41 @@ class SlfAvalancheCoordinator(DataUpdateCoordinator[dict]):
 class ImisCoordinator(DataUpdateCoordinator[dict]):
     """Fetches the latest IMIS measurements for the selected stations.
 
-    Data: dict keyed by station code with {"values", "fields", "measure_date",
-    "new_snow_1d", "daily_snow_height"}.
+    Data: dict keyed by station code with {"values", "dates", "fields",
+    "measure_date", "new_snow_1d", "daily_snow_height", "daily_measure_date"}.
+    A station that could not be fetched is absent from the dict, which is
+    what its sensors use to report themselves unavailable.
     """
 
-    def __init__(self, hass: HomeAssistant, stations: list[dict]) -> None:
+    def __init__(self, hass: HomeAssistant, stations: list[dict], name: str) -> None:
         super().__init__(
             hass,
             _LOGGER,
-            name=f"{DOMAIN}_imis",
+            name=f"{DOMAIN}_imis {name}",
             update_interval=timedelta(minutes=IMIS_UPDATE_INTERVAL_MINUTES),
         )
         # Station metadata dicts as stored in the config entry
         # (code, label, elevation, lat, lon, type, distance_km).
         self.stations = stations
+        # Stations whose last fetch failed: logged once when they fail and
+        # once when they are back, not on every refresh in between.
+        self._failed: set[str] = set()
+
+    async def _fetch_station(self, code: str) -> dict | None:
+        """Measurements of one station, or None when it cannot be fetched."""
+        try:
+            data = await async_fetch_station_measurements(self.hass, code)
+        except API_ERRORS as err:
+            if code in self._failed:
+                _LOGGER.debug("IMIS station %s still unreachable: %s", code, err)
+            else:
+                _LOGGER.warning("IMIS station %s unreachable: %s", code, err)
+                self._failed.add(code)
+            return None
+        if code in self._failed:
+            self._failed.discard(code)
+            _LOGGER.info("IMIS station %s reachable again", code)
+        return data
 
     async def _async_update_data(self) -> dict:
         try:
@@ -148,21 +180,23 @@ class ImisCoordinator(DataUpdateCoordinator[dict]):
             _LOGGER.debug("IMIS daily-snow unavailable: %s", err)
             daily = {}
 
+        # All stations at once rather than one after the other, so the first
+        # refresh at entry setup does not wait for N sequential requests.
+        fetched = await asyncio.gather(
+            *(self._fetch_station(station["code"]) for station in self.stations)
+        )
+
         result: dict[str, dict] = {}
-        errors = 0
-        for station in self.stations:
-            code = station["code"]
-            try:
-                data = await async_fetch_station_measurements(self.hass, code)
-            except Exception as err:
-                _LOGGER.warning("IMIS station %s unreachable: %s", code, err)
-                errors += 1
+        for station, data in zip(self.stations, fetched):
+            if data is None:
                 continue
+            code = station["code"]
             daily_record = daily.get(code) or {}
             data["new_snow_1d"] = daily_record.get("HN_1D")
             data["daily_snow_height"] = daily_record.get("HS")
+            data["daily_measure_date"] = daily_record.get("measure_date")
             result[code] = data
 
-        if errors and not result:
+        if self.stations and not result:
             raise UpdateFailed("No IMIS station reachable")
         return result

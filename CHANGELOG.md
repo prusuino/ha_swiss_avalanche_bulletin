@@ -1,13 +1,63 @@
 # Changelog
 
-## 1.2.2 — 2026-08-29
+## 1.3.0 — 2026-08-29
 
+Follow-ups from a review of the integration. Nothing to do after
+updating: existing entities keep their entity ids, devices and history.
+
+**Fixed:**
+
+- IMIS sensors of a station that cannot be fetched now become
+  `unavailable`, as the README promised all along, instead of staying
+  "available" with an unknown value while the other stations keep
+  updating.
+- A station that is unreachable when Home Assistant starts gets its
+  sensors as soon as it answers — no reload needed. Sensors it had in an
+  earlier run show up as unavailable in the meantime instead of being
+  missing.
+- A measured value is only reported as current if it was measured within
+  the last 3 hours, judged by the record's timestamp against the clock,
+  and the `measure_date` attribute now belongs to the value shown.
+  Previously a value up to 24 h old could be shown with the timestamp of
+  the newest record.
+- An unreachable IMIS station is logged once when it fails and once when
+  it is back, instead of a warning every 30 minutes.
+- The setup and options dialogs tell an unexpected error apart from
+  "cannot connect", and a station that is already a favourite of another
+  entry is rejected instead of being added a second time.
+- The dashboard strategy no longer produces an "IMIS measuring stations"
+  section with nothing but its heading when every station of an entry is
+  hidden, and its sections follow `max_columns` (they stayed two columns
+  wide with `max_columns: 3` or more).
+
+**Changed:**
+
+- Suggested entity ids of newly created entities end in the last four
+  characters of the config entry id, e.g.
+  `sensor.slf_avalanche_danger_level_home_ab12` and
+  `sensor.slf_imis_slf2_ab12_snow_height`, so two locations with the same
+  label or two entries with the same station can never collide. This only
+  affects entities created from now on: a suggested id applies when an
+  entity is created for the first time, entities that already exist keep
+  their ids. The bundled card and the strategy work with both forms.
+- The stations of an IMIS entry are fetched at the same time instead of
+  one after the other, so setup no longer waits for one request per
+  station.
+- The bulletin and station coordinators carry the entry's label in their
+  log lines, so several entries can be told apart.
+- SECURITY.md now says exactly what is sent where: HTTPS only, two SLF
+  hosts, the configured coordinates for the warning-region lookup, and the
+  station codes and current date that travel in the request URLs.
 - Updated the bundled dashboard-strategy core to 1.1.1: `map: false` now
   also removes a map section inside a view, `max_columns` is honoured in
   the view-strategy flavour, and a view's header is kept when the strategy
-  fills a single view. No change to the integration itself. The card file
-  changed, so raise the `?v=` on the resource URL (e.g. `?v=1.2.2`) or do
-  a hard reload if the old copy is still served.
+  fills a single view.
+
+**Upgrading:**
+
+- The card file changed, so raise the `?v=` on the resource URL (e.g.
+  `?v=1.3.0`) or do a hard reload if the old copy is still served.
+- The minimum Home Assistant version stays at 2024.12.0.
 
 ## 1.2.1 — 2026-08-29
 

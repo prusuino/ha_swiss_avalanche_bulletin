@@ -28,11 +28,14 @@
     },
     "abort": {
       "already_configured": "Dieser Standort ist bereits konfiguriert.",
-      "imis_unavailable": "Die IMIS-Stationsliste konnte nicht geladen werden. Bitte später erneut versuchen."
+      "imis_unavailable": "Die IMIS-Stationsliste konnte nicht geladen werden. Bitte später erneut versuchen.",
+      "unknown": "Unerwarteter Fehler. Details stehen im Home-Assistant-Protokoll."
     },
     "error": {
       "cannot_connect": "Die SLF-Warnregion konnte für diese Koordinaten nicht ermittelt werden.",
-      "no_station": "Bitte mindestens eine Station auswählen."
+      "no_station": "Bitte mindestens eine Station auswählen.",
+      "unknown": "Unerwarteter Fehler. Details stehen im Home-Assistant-Protokoll.",
+      "station_already_configured": "Mindestens eine der gewählten Stationen ist bereits Favorit eines anderen Eintrags."
     }
   },
   "options": {
@@ -47,10 +50,12 @@
     },
     "abort": {
       "no_options": "Dieser Eintrag hat keine Optionen — das Bulletin folgt seinem konfigurierten Standort.",
-      "imis_unavailable": "Die IMIS-Stationsliste konnte nicht geladen werden. Bitte später erneut versuchen."
+      "imis_unavailable": "Die IMIS-Stationsliste konnte nicht geladen werden. Bitte später erneut versuchen.",
+      "unknown": "Unerwarteter Fehler. Details stehen im Home-Assistant-Protokoll."
     },
     "error": {
-      "no_station": "Bitte mindestens eine Station auswählen."
+      "no_station": "Bitte mindestens eine Station auswählen.",
+      "station_already_configured": "Mindestens eine der gewählten Stationen ist bereits Favorit eines anderen Eintrags."
     }
   }
 }

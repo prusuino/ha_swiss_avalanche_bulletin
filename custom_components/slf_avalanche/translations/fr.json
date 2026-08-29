@@ -28,11 +28,14 @@
     },
     "abort": {
       "already_configured": "Cet emplacement est déjà configuré.",
-      "imis_unavailable": "Impossible de récupérer la liste des stations IMIS. Veuillez réessayer plus tard."
+      "imis_unavailable": "Impossible de récupérer la liste des stations IMIS. Veuillez réessayer plus tard.",
+      "unknown": "Erreur inattendue. Les détails se trouvent dans le journal de Home Assistant."
     },
     "error": {
       "cannot_connect": "Impossible de déterminer la région d'avertissement SLF pour ces coordonnées.",
-      "no_station": "Sélectionnez au moins une station."
+      "no_station": "Sélectionnez au moins une station.",
+      "unknown": "Erreur inattendue. Les détails se trouvent dans le journal de Home Assistant.",
+      "station_already_configured": "Au moins une des stations sélectionnées est déjà un favori d'une autre entrée."
     }
   },
   "options": {
@@ -47,10 +50,12 @@
     },
     "abort": {
       "no_options": "Cette entrée n'a pas d'options — le bulletin suit son emplacement configuré.",
-      "imis_unavailable": "Impossible de récupérer la liste des stations IMIS. Veuillez réessayer plus tard."
+      "imis_unavailable": "Impossible de récupérer la liste des stations IMIS. Veuillez réessayer plus tard.",
+      "unknown": "Erreur inattendue. Les détails se trouvent dans le journal de Home Assistant."
     },
     "error": {
-      "no_station": "Sélectionnez au moins une station."
+      "no_station": "Sélectionnez au moins une station.",
+      "station_already_configured": "Au moins une des stations sélectionnées est déjà un favori d'une autre entrée."
     }
   }
 }

@@ -28,11 +28,14 @@
     },
     "abort": {
       "already_configured": "Questa posizione è già configurata.",
-      "imis_unavailable": "Impossibile recuperare l'elenco delle stazioni IMIS. Riprova più tardi."
+      "imis_unavailable": "Impossibile recuperare l'elenco delle stazioni IMIS. Riprova più tardi.",
+      "unknown": "Errore imprevisto. I dettagli sono nel registro di Home Assistant."
     },
     "error": {
       "cannot_connect": "Impossibile determinare la regione di allerta SLF per queste coordinate.",
-      "no_station": "Seleziona almeno una stazione."
+      "no_station": "Seleziona almeno una stazione.",
+      "unknown": "Errore imprevisto. I dettagli sono nel registro di Home Assistant.",
+      "station_already_configured": "Almeno una delle stazioni selezionate è già tra i preferiti di un'altra voce."
     }
   },
   "options": {
@@ -47,10 +50,12 @@
     },
     "abort": {
       "no_options": "Questa voce non ha opzioni — il bollettino segue la posizione configurata.",
-      "imis_unavailable": "Impossibile recuperare l'elenco delle stazioni IMIS. Riprova più tardi."
+      "imis_unavailable": "Impossibile recuperare l'elenco delle stazioni IMIS. Riprova più tardi.",
+      "unknown": "Errore imprevisto. I dettagli sono nel registro di Home Assistant."
     },
     "error": {
-      "no_station": "Seleziona almeno una stazione."
+      "no_station": "Seleziona almeno una stazione.",
+      "station_already_configured": "Almeno una delle stazioni selezionate è già tra i preferiti di un'altra voce."
     }
   }
 }

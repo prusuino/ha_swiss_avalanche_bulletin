@@ -19,7 +19,9 @@ from homeassistant.const import (
     UnitOfSpeed,
     UnitOfTemperature,
 )
-from homeassistant.core import HomeAssistant
+from homeassistant.core import HomeAssistant, callback
+from homeassistant.helpers import entity_registry as er
+from homeassistant.helpers.device_registry import DeviceEntryType
 from homeassistant.helpers.entity import DeviceInfo
 from homeassistant.helpers.entity_platform import AddEntitiesCallback
 from homeassistant.helpers.update_coordinator import CoordinatorEntity
@@ -51,34 +53,94 @@ async def async_setup_entry(
 ) -> None:
     data: RuntimeData = hass.data[DOMAIN][entry.entry_id]
 
-    entities: list[SensorEntity] = []
     if data.bulletin is not None:
         coordinator = data.bulletin
-        entities += [
+        entities: list[SensorEntity] = [
             SlfDangerLevelSensor(hass, coordinator, entry),
             SlfRegionSensor(hass, coordinator, entry),
         ]
         for i in range(MAX_PROBLEM_SENSORS):
             entities.append(SlfProblemSensor(hass, coordinator, entry, i))
+        async_add_entities(entities)
 
     if data.imis is not None:
-        for station in data.imis.stations:
-            station_data = (data.imis.data or {}).get(station["code"]) or {}
-            fields = set(station_data.get("fields") or [])
-            if station_data.get("new_snow_1d") is not None or "snow_height" in fields:
-                fields.add("new_snow_1d")
-            for key in IMIS_SENSOR_TYPES:
-                if key in fields:
-                    entities.append(
-                        ImisMeasurementSensor(hass, data.imis, entry, station, key)
-                    )
+        _async_setup_imis_sensors(hass, entry, data.imis, async_add_entities)
 
-    async_add_entities(entities)
+
+@callback
+def _async_setup_imis_sensors(
+    hass: HomeAssistant,
+    entry: ConfigEntry,
+    coordinator: ImisCoordinator,
+    async_add_entities: AddEntitiesCallback,
+) -> None:
+    """Create the IMIS sensors and keep adding new ones as stations report them.
+
+    Policy: a station gets a sensor for every field it has delivered at least
+    once. Sensors already in the entity registry from an earlier run are
+    created right away, so a station that is unreachable at startup shows its
+    sensors as unavailable instead of not at all; fields present in the
+    current data are added at setup and after every refresh, so a station
+    that only answers later gets its sensors without a reload. A field the
+    station stops delivering keeps its entity and reads unknown - entities
+    are only removed together with their station (see
+    _cleanup_stale_station_devices in __init__.py).
+    """
+    registered = _registered_imis_sensors(hass, entry, coordinator.stations)
+    created: set[tuple[str, str]] = set()
+
+    @callback
+    def _add_new_sensors() -> None:
+        new: list[SensorEntity] = []
+        for station in coordinator.stations:
+            code = station["code"]
+            delivered = _delivered_fields(coordinator, code)
+            for key in IMIS_SENSOR_TYPES:
+                if (code, key) in created:
+                    continue
+                if key not in delivered and (code, key) not in registered:
+                    continue
+                created.add((code, key))
+                new.append(ImisMeasurementSensor(hass, coordinator, entry, station, key))
+        if new:
+            async_add_entities(new)
+
+    _add_new_sensors()
+    entry.async_on_unload(coordinator.async_add_listener(_add_new_sensors))
+
+
+def _delivered_fields(coordinator: ImisCoordinator, code: str) -> set[str]:
+    """Sensor keys a station has data for (new snow comes with the snow depth)."""
+    station_data = (coordinator.data or {}).get(code) or {}
+    fields = set(station_data.get("fields") or [])
+    if station_data.get("new_snow_1d") is not None or "snow_height" in fields:
+        fields.add("new_snow_1d")
+    return fields
+
+
+def _registered_imis_sensors(
+    hass: HomeAssistant, entry: ConfigEntry, stations: list[dict]
+) -> set[tuple[str, str]]:
+    """(station code, sensor key) of the IMIS sensors already in the entity registry."""
+    registry = er.async_get(hass)
+    return {
+        (station["code"], key)
+        for station in stations
+        for key in IMIS_SENSOR_TYPES
+        if registry.async_get_entity_id(
+            "sensor", DOMAIN, f"{entry.entry_id}_imis_{station['code']}_{key}"
+        )
+    }
 
 
 def _slug(entry: ConfigEntry) -> str:
     name = entry.data.get(CONF_NAME) or entry.entry_id
     return slugify(name)
+
+
+def _entry_suffix(entry: ConfigEntry) -> str:
+    """Last four characters of the entry id, keeping suggested entity ids apart per entry."""
+    return entry.entry_id[-4:].lower()
 
 
 class SlfDangerLevelSensor(CoordinatorEntity[SlfAvalancheCoordinator], SensorEntity):
@@ -95,7 +157,7 @@ class SlfDangerLevelSensor(CoordinatorEntity[SlfAvalancheCoordinator], SensorEnt
         self._attr_name = t("danger_level_sensor_name", hass)
         self._attr_unique_id = f"{entry.entry_id}_danger_level"
         self._attr_device_info = device_info(hass, entry)
-        self.entity_id = f"sensor.slf_avalanche_danger_level_{_slug(entry)}"
+        self.entity_id = f"sensor.slf_avalanche_danger_level_{_slug(entry)}_{_entry_suffix(entry)}"
 
     @property
     def native_value(self):
@@ -131,7 +193,7 @@ class SlfRegionSensor(CoordinatorEntity[SlfAvalancheCoordinator], SensorEntity):
         self._attr_name = t("region_sensor_name", hass)
         self._attr_unique_id = f"{entry.entry_id}_region"
         self._attr_device_info = device_info(hass, entry)
-        self.entity_id = f"sensor.slf_avalanche_region_{_slug(entry)}"
+        self.entity_id = f"sensor.slf_avalanche_region_{_slug(entry)}_{_entry_suffix(entry)}"
 
     @property
     def native_value(self):
@@ -157,7 +219,9 @@ class SlfProblemSensor(CoordinatorEntity[SlfAvalancheCoordinator], SensorEntity)
         self._attr_name = t("problem_sensor_name", hass, n=index + 1)
         self._attr_unique_id = f"{entry.entry_id}_problem_{index + 1}"
         self._attr_device_info = device_info(hass, entry)
-        self.entity_id = f"sensor.slf_avalanche_problem_{index + 1}_{_slug(entry)}"
+        self.entity_id = (
+            f"sensor.slf_avalanche_problem_{index + 1}_{_slug(entry)}_{_entry_suffix(entry)}"
+        )
 
     def _problem(self) -> dict | None:
         problems = self.coordinator.data.get("avalanche_problems") or []
@@ -213,18 +277,28 @@ class ImisMeasurementSensor(CoordinatorEntity[ImisCoordinator], SensorEntity):
             self._attr_icon = icon
         self._attr_name = t(f"imis_{key}", hass)
         self._attr_unique_id = f"{entry.entry_id}_imis_{code}_{key}"
-        self.entity_id = f"sensor.slf_imis_{slugify(code)}_{key}"
+        # The bundled card and the dashboard strategy find a station's sensors
+        # by this pattern, sensor.slf_imis_<station slug>_<key>. The station
+        # slug carries the entry suffix so the ids of two entries can never
+        # collide. Only a suggestion: entities that already exist keep their
+        # registered id.
+        self.entity_id = f"sensor.slf_imis_{slugify(code)}_{_entry_suffix(entry)}_{key}"
         label = station.get("label") or code
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, f"{entry.entry_id}_imis_{code}")},
             name=t("imis_device_name", hass, name=f"{label} ({code})"),
             manufacturer=t("manufacturer", hass),
             model=t("imis_model", hass),
-            entry_type="service",
+            entry_type=DeviceEntryType.SERVICE,
         )
 
     def _station_data(self) -> dict:
         return (self.coordinator.data or {}).get(self._station["code"]) or {}
+
+    @property
+    def available(self) -> bool:
+        # A station the coordinator could not fetch is missing from its data.
+        return super().available and self._station["code"] in (self.coordinator.data or {})
 
     @property
     def native_value(self):
@@ -235,13 +309,20 @@ class ImisMeasurementSensor(CoordinatorEntity[ImisCoordinator], SensorEntity):
 
     @property
     def extra_state_attributes(self):
+        data = self._station_data()
+        if self._key == "new_snow_1d":
+            measured = data.get("daily_measure_date")
+        else:
+            measured = (data.get("dates") or {}).get(self._key)
         attrs = {
             "station_code": self._station["code"],
             "station_name": self._station.get("label"),
             "elevation": self._station.get("elevation"),
             "distance_km": self._station.get("distance_km"),
-            "measure_date": self._station_data().get("measure_date"),
+            # Timestamp of the record the shown value was taken from; the
+            # station's newest record when there is no current value.
+            "measure_date": measured or data.get("measure_date"),
         }
         if self._key == "snow_height":
-            attrs["daily_snow_height"] = self._station_data().get("daily_snow_height")
+            attrs["daily_snow_height"] = data.get("daily_snow_height")
         return attrs

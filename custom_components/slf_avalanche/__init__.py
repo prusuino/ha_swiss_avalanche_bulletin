@@ -13,6 +13,7 @@ from .const import (
     CONF_LATITUDE,
     CONF_LONGITUDE,
     CONF_MODE,
+    CONF_NAME,
     DOMAIN,
     MODE_BULLETIN,
     MODE_IMIS,
@@ -53,7 +54,10 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     bulletin = None
     if mode == MODE_BULLETIN:
         bulletin = SlfAvalancheCoordinator(
-            hass, entry.data[CONF_LATITUDE], entry.data[CONF_LONGITUDE]
+            hass,
+            entry.data[CONF_LATITUDE],
+            entry.data[CONF_LONGITUDE],
+            entry.data.get(CONF_NAME) or entry.title,
         )
         await bulletin.async_config_entry_first_refresh()
 
@@ -62,7 +66,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         CONF_IMIS_STATIONS, entry.data.get(CONF_IMIS_STATIONS) or []
     )
     if mode == MODE_IMIS and stations:
-        imis = ImisCoordinator(hass, stations)
+        imis = ImisCoordinator(hass, stations, entry.title)
         await imis.async_config_entry_first_refresh()
 
     _cleanup_stale_station_devices(hass, entry, stations)

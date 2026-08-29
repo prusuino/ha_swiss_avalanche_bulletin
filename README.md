@@ -27,7 +27,7 @@ Per configured location:
 | `sensor.slf_avalanche_region_<label>` | The SLF warning region name resolved for your coordinates (e.g. "Olten-Gösgen") — lets you confirm the location match is correct |
 | `sensor.slf_avalanche_problem_1/2/3_<label>` | Up to 3 currently reported avalanche problems (e.g. wind-drifted snow, persistent weak layers, wet snow). Each includes elevation range, affected aspects (compass directions), and the SLF's full plain-text explanation. Entities report no value on days with fewer than 3 reported problems |
 
-`<label>` is the label you gave the location when adding it — or, if you left it empty, the name of the resolved SLF warning region — slugified: a location labelled "Home" gets `sensor.slf_avalanche_danger_level_home`, an unlabelled one in the Olten-Gösgen region `sensor.slf_avalanche_danger_level_olten_gosgen`. The integration sets these object ids itself when an entity is first created, so they do not depend on your Home Assistant language — only the displayed names are localized. Like any entity, they can be renamed in the entity settings afterwards.
+`<label>` is the label you gave the location when adding it — or, if you left it empty, the name of the resolved SLF warning region — slugified, followed by the last four characters of the config entry id so that two locations with the same label never collide: a location labelled "Home" gets something like `sensor.slf_avalanche_danger_level_home_ab12`, an unlabelled one in the Olten-Gösgen region `sensor.slf_avalanche_danger_level_olten_gosgen_ab12`. The integration suggests these object ids itself when an entity is first created, so they do not depend on your Home Assistant language — only the displayed names are localized. Entities created by versions before 1.3.0 keep their ids without the four-character part. Like any entity, they can be renamed in the entity settings afterwards.
 
 Data is refreshed every hour. The bulletin itself is typically published once daily (around 17:00), with interim updates during high-danger situations.
 
@@ -43,7 +43,9 @@ Each station becomes a device with sensors for what it actually measures, update
 | Air temperature, snow surface temperature, humidity | most stations |
 | Wind speed, gusts, direction | wind stations and many snow stations |
 
-Their entity ids are built from the station code, `sensor.slf_imis_<code>_<measurement>` — e.g. `sensor.slf_imis_slf2_snow_height` — and, like the bulletin sensors, are set by the integration itself, independent of the Home Assistant language.
+Their entity ids are built from the station code and the same four-character entry part as the bulletin sensors, `sensor.slf_imis_<code>_<xxxx>_<measurement>` — e.g. `sensor.slf_imis_slf2_ab12_snow_height`; entities created before 1.3.0 keep `sensor.slf_imis_slf2_snow_height` — and are suggested by the integration itself, independent of the Home Assistant language.
+
+A value is only reported as current if it was measured within the last 3 hours; the `measure_date` attribute tells when the shown value was measured. The sensors of a station that cannot be fetched are `unavailable` until it answers again, and a station that is unreachable when Home Assistant starts gets its sensors as soon as it does — no reload needed.
 
 ## Bundled card & dashboard
 
@@ -57,7 +59,7 @@ The card file is served by the integration, but you register it as a Lovelace re
 
 | Field | Value |
 |---|---|
-| URL | `/slf_avalanche/static/slf-imis-card.js?v=1.2.2` |
+| URL | `/slf_avalanche/static/slf-imis-card.js?v=1.3.0` |
 | Resource type | JavaScript module |
 
 Then reload the page (Ctrl/Cmd+Shift+R). The card appears as **SLF IMIS Station** in the normal card picker, with its visual editor; the same file also contains the [dashboard strategy](#dashboard), so this one resource covers both.
@@ -127,27 +129,27 @@ That view is regenerated like the full dashboard is, so new config entries still
 
 ### Building it yourself
 
-Add the cards wherever you like. An IMIS station card takes the station code in lower case (visible in the integration options, e.g. `slf2`):
+Add the cards wherever you like. An IMIS station card takes the station part of the station's entity ids: the lower-case station code followed by the four-character entry part, e.g. `slf2_ab12` — or just `slf2` for entries created before 1.3.0. The card's visual editor lists the stations it finds, so you rarely have to type it:
 
 ```yaml
 type: custom:slf-imis-station-card
-station: slf2
+station: slf2_ab12
 ```
 
 For a bulletin location, plain tile cards on the two sensors work well:
 
 ```yaml
 type: tile
-entity: sensor.slf_avalanche_danger_level_home
+entity: sensor.slf_avalanche_danger_level_home_ab12
 color: red
 ```
 
 ```yaml
 type: tile
-entity: sensor.slf_avalanche_region_home
+entity: sensor.slf_avalanche_region_home_ab12
 ```
 
-Replace `home` with your location label, and check the exact entity IDs under **Settings → Devices & Services → Entities**.
+Replace `home_ab12` with your location label and entry part, and check the exact entity IDs under **Settings → Devices & Services → Entities**.
 
 ## Language
 
@@ -186,7 +188,7 @@ This integration reads live data from the SLF's public bulletin API (`aws.slf.ch
 
 - Only relevant for locations in or near Switzerland — the SLF's ~150 warning regions cover the country and adjacent border areas.
 - This integration is unofficial and not affiliated with, endorsed by, or supported by the SLF. It only reads their published open data.
-- If the SLF API is unreachable or its format changes, entities become `unavailable` rather than reporting a stale or incorrect value.
+- If the SLF API is unreachable or its format changes, entities become `unavailable` rather than reporting a stale or incorrect value. The sensors of a single IMIS station that cannot be fetched become `unavailable` on their own while the other stations keep updating.
 - **This is informational only.** Avalanche danger assessment requires proper training and terrain judgment. Never use this integration as your sole basis for backcountry travel decisions — always consult the official bulletin at [slf.ch](https://www.slf.ch/en/avalanche-bulletin-and-snow-situation/) directly.
 
 ## Disclaimer

@@ -1,11 +1,12 @@
 """Config flow for the Swiss Avalanche Bulletin (SLF) integration."""
 from __future__ import annotations
 
+import logging
 from typing import Any
 
 import voluptuous as vol
 from homeassistant.config_entries import ConfigEntry, ConfigFlow, OptionsFlow
-from homeassistant.core import callback
+from homeassistant.core import HomeAssistant, callback
 from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers.selector import (
     SelectOptionDict,
@@ -13,6 +14,7 @@ from homeassistant.helpers.selector import (
     SelectSelectorConfig,
     SelectSelectorMode,
 )
+from homeassistant.helpers.update_coordinator import UpdateFailed
 
 from .const import (
     CONF_IMIS_STATIONS,
@@ -24,9 +26,15 @@ from .const import (
     MODE_BULLETIN,
     MODE_IMIS,
 )
-from .coordinator import async_resolve_sector
+from .coordinator import API_ERRORS, async_resolve_sector
 from .imis import async_fetch_stations, stations_by_distance
 from .localization import t
+
+_LOGGER = logging.getLogger(__name__)
+
+# Shown as "cannot connect": the service is unreachable, or (UpdateFailed) it
+# knows no warning region for the coordinates.
+_CANNOT_CONNECT = (UpdateFailed, *API_ERRORS)
 
 # Station type markers shown in the picker.
 _TYPE_LABEL = {
@@ -74,6 +82,23 @@ def _selected_stations(stations: list[dict], codes: list[str]) -> list[dict]:
     return result
 
 
+def _stations_configured_elsewhere(
+    hass: HomeAssistant, exclude_entry_id: str | None = None
+) -> set[str]:
+    """Codes of the stations that are already favourites of another IMIS entry."""
+    codes: set[str] = set()
+    for entry in hass.config_entries.async_entries(DOMAIN):
+        if entry.entry_id == exclude_entry_id:
+            continue
+        if entry.data.get(CONF_MODE, MODE_BULLETIN) != MODE_IMIS:
+            continue
+        stations = entry.options.get(
+            CONF_IMIS_STATIONS, entry.data.get(CONF_IMIS_STATIONS) or []
+        )
+        codes.update(s["code"] for s in stations)
+    return codes
+
+
 def _imis_title(stations: list[dict]) -> str:
     labels = [s["label"] for s in stations]
     shown = ", ".join(labels[:2])
@@ -108,8 +133,11 @@ class SlfAvalancheConfigFlow(ConfigFlow, domain=DOMAIN):
 
             try:
                 sector = await async_resolve_sector(self.hass, lat, lon)
-            except Exception:
+            except _CANNOT_CONNECT:
                 errors["base"] = "cannot_connect"
+            except Exception:  # noqa: BLE001 - shown as "unknown", logged for the bug report
+                _LOGGER.exception("Unexpected error while resolving the SLF warning region")
+                errors["base"] = "unknown"
             else:
                 name = user_input.get(CONF_NAME) or sector["sector_name"]
                 return self.async_create_entry(
@@ -139,8 +167,11 @@ class SlfAvalancheConfigFlow(ConfigFlow, domain=DOMAIN):
             stations = _selected_stations(
                 self._stations, user_input.get(CONF_IMIS_STATIONS) or []
             )
+            taken = _stations_configured_elsewhere(self.hass)
             if not stations:
                 errors[CONF_IMIS_STATIONS] = "no_station"
+            elif any(s["code"] in taken for s in stations):
+                errors[CONF_IMIS_STATIONS] = "station_already_configured"
             else:
                 return self.async_create_entry(
                     title=_imis_title(stations),
@@ -150,8 +181,11 @@ class SlfAvalancheConfigFlow(ConfigFlow, domain=DOMAIN):
         if not self._stations:
             try:
                 stations = await async_fetch_stations(self.hass)
-            except Exception:
+            except API_ERRORS:
                 return self.async_abort(reason="imis_unavailable")
+            except Exception:  # noqa: BLE001 - shown as "unknown", logged for the bug report
+                _LOGGER.exception("Unexpected error while fetching the IMIS station list")
+                return self.async_abort(reason="unknown")
             self._stations = stations_by_distance(
                 stations, self.hass.config.latitude, self.hass.config.longitude
             )
@@ -191,8 +225,11 @@ class SlfAvalancheOptionsFlow(OptionsFlow):
             stations = _selected_stations(
                 self._stations, user_input.get(CONF_IMIS_STATIONS) or []
             )
+            taken = _stations_configured_elsewhere(self.hass, entry.entry_id)
             if not stations:
                 errors[CONF_IMIS_STATIONS] = "no_station"
+            elif any(s["code"] in taken for s in stations):
+                errors[CONF_IMIS_STATIONS] = "station_already_configured"
             else:
                 return self.async_create_entry(
                     title="", data={CONF_IMIS_STATIONS: stations}
@@ -201,8 +238,11 @@ class SlfAvalancheOptionsFlow(OptionsFlow):
         if not self._stations:
             try:
                 stations = await async_fetch_stations(self.hass)
-            except Exception:
+            except API_ERRORS:
                 return self.async_abort(reason="imis_unavailable")
+            except Exception:  # noqa: BLE001 - shown as "unknown", logged for the bug report
+                _LOGGER.exception("Unexpected error while fetching the IMIS station list")
+                return self.async_abort(reason="unknown")
             self._stations = stations_by_distance(
                 stations, self.hass.config.latitude, self.hass.config.longitude
             )

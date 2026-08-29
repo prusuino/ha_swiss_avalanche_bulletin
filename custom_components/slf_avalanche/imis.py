@@ -8,9 +8,11 @@ the avalanche bulletin.
 from __future__ import annotations
 
 import math
+from datetime import datetime, timedelta
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
+from homeassistant.util import dt as dt_util
 
 from .const import IMIS_DAILY_SNOW_URL, IMIS_MEASUREMENTS_URL, IMIS_STATIONS_URL
 
@@ -26,6 +28,13 @@ FIELD_MAP = {
     "VW_30MIN_MAX": "wind_gust",
     "DW_30MIN_MEAN": "wind_direction",
 }
+
+# The measurement endpoint returns the last 24 h in 30-minute records. Only a
+# value measured within this period, judged by the record's timestamp against
+# the clock, counts as the current value of a field; an older one is not shown
+# as live. Counting records instead would only hold while the API fills every
+# missing half hour with nulls.
+IMIS_CURRENT_MAX_AGE = timedelta(hours=3)
 
 
 def haversine_km(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
@@ -57,31 +66,55 @@ def stations_by_distance(stations: list[dict], lat: float, lon: float) -> list[d
     return sorted(result, key=lambda s: s["distance_km"])
 
 
-async def async_fetch_station_measurements(hass: HomeAssistant, code: str) -> dict:
-    """Latest measurement record of one station plus its available fields.
+def _measured_at(record: dict) -> datetime | None:
+    """Timestamp of a measurement record as an aware UTC datetime, if usable."""
+    raw = record.get("measure_date")
+    if not isinstance(raw, str):
+        return None
+    measured = dt_util.parse_datetime(raw)
+    return dt_util.as_utc(measured) if measured is not None else None
 
-    The API returns the last 24 h in 30-minute steps; the newest record can
-    contain isolated nulls (sensor hiccup), so field availability is judged
-    across the whole window and the newest non-null value per field is used.
+
+async def async_fetch_station_measurements(hass: HomeAssistant, code: str) -> dict:
+    """Current measurement values of one station plus its available fields.
+
+    The API returns the last 24 h in 30-minute steps, oldest first. The newest
+    record can contain isolated nulls (sensor hiccup), so the newest non-null
+    value per field measured within the last IMIS_CURRENT_MAX_AGE is used,
+    together with the timestamp of the record it was taken from ("dates").
+    Which fields a station measures at all ("fields", used to decide which
+    sensors it gets) is judged across the whole 24 h window, so a field that
+    has gone quiet keeps its sensor and reads unknown.
     """
     session = async_get_clientsession(hass)
     async with session.get(IMIS_MEASUREMENTS_URL.format(code=code), timeout=25) as resp:
         resp.raise_for_status()
         records = await resp.json(content_type=None)
 
-    if not isinstance(records, list) or not records:
-        return {"values": {}, "fields": set(), "measure_date": None}
+    if not isinstance(records, list):
+        records = []
+    records = [r for r in records if isinstance(r, dict)]
+    if not records:
+        return {"values": {}, "dates": {}, "fields": set(), "measure_date": None}
 
     values: dict[str, float] = {}
+    dates: dict[str, str | None] = {}
     fields: set[str] = set()
+    cutoff = dt_util.utcnow() - IMIS_CURRENT_MAX_AGE
     for record in records:  # oldest -> newest; later records win
+        measured = _measured_at(record)
+        current = measured is not None and measured >= cutoff
         for api_key, key in FIELD_MAP.items():
             value = record.get(api_key)
-            if value is not None:
+            if value is None:
+                continue
+            fields.add(key)
+            if current:
                 values[key] = value
-                fields.add(key)
+                dates[key] = record.get("measure_date")
     return {
         "values": values,
+        "dates": dates,
         "fields": fields,
         "measure_date": records[-1].get("measure_date"),
     }
