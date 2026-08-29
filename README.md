@@ -57,7 +57,7 @@ The card file is served by the integration, but you register it as a Lovelace re
 
 | Field | Value |
 |---|---|
-| URL | `/slf_avalanche/static/slf-imis-card.js?v=1.2.1` |
+| URL | `/slf_avalanche/static/slf-imis-card.js?v=1.2.2` |
 | Resource type | JavaScript module |
 
 Then reload the page (Ctrl/Cmd+Shift+R). The card appears as **SLF IMIS Station** in the normal card picker, with its visual editor; the same file also contains the [dashboard strategy](#dashboard), so this one resource covers both.

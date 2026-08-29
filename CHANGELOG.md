@@ -1,5 +1,14 @@
 # Changelog
 
+## 1.2.2 — 2026-08-29
+
+- Updated the bundled dashboard-strategy core to 1.1.1: `map: false` now
+  also removes a map section inside a view, `max_columns` is honoured in
+  the view-strategy flavour, and a view's header is kept when the strategy
+  fills a single view. No change to the integration itself. The card file
+  changed, so raise the `?v=` on the resource URL (e.g. `?v=1.2.2`) or do
+  a hard reload if the old copy is still served.
+
 ## 1.2.1 — 2026-08-29
 
 Version 1.2.0 removed the automatically created "Avalanches" dashboard
