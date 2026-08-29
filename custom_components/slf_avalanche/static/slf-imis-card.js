@@ -6,6 +6,10 @@
  *
  * The card provides a visual editor (getConfigElement) and follows the
  * Home Assistant frontend language (de/en/fr/it).
+ *
+ * The same file also carries the dashboard strategy
+ * (custom:swiss-avalanche-bulletin) at the bottom, so that one resource
+ * covers both.
  */
 
 const SLF_IMIS_L10N = {
@@ -240,3 +244,437 @@ window.customCards.push({
   name: 'SLF IMIS Station',
   description: 'Snow depth, temperatures and wind of an SLF IMIS measuring station',
 });
+
+/* ===================================================================== */
+/* The strategy block below is wrapped in an IIFE: several of these       */
+/* integrations ship the same core, and without the wrapper two of them   */
+/* installed side by side would declare the same consts in one scope.     */
+/* ===================================================================== */
+(() => {
+/* =====================================================================
+ * Dashboard strategy core — shared building blocks
+ * =====================================================================
+ * A Lovelace dashboard strategy generates a dashboard in the browser at
+ * render time. Nothing is written to .storage: the dashboard belongs to
+ * the user, the integration only supplies the recipe.
+ *
+ * ⚠️ This block is duplicated into every integration that ships a
+ * strategy. Each integration is its own HACS repository and must not
+ * depend on another one being installed, so a shared file is not an
+ * option. Keep the copies in sync and bump CORE_VERSION when the shared
+ * part changes — it identifies which revision a copy was taken from.
+ * ===================================================================== */
+
+const CORE_VERSION = "1.1.0";
+
+/* --- Registry access -------------------------------------------------
+ * The registries are the only reliable way to find an integration's
+ * entities: entity_id patterns are user-editable, unique_id is not.
+ * Both calls are cheap and cached by the frontend for the render pass.
+ */
+async function loadRegistry(hass) {
+  const [entities, devices] = await Promise.all([
+    hass.callWS({ type: "config/entity_registry/list" }),
+    hass.callWS({ type: "config/device_registry/list" }),
+  ]);
+  return { entities, devices };
+}
+
+/** All registry entries belonging to one integration (platform == domain). */
+function entriesOfDomain(entities, domain) {
+  return entities.filter((e) => e.platform === domain && !e.disabled_by);
+}
+
+/** Registry entries of one config entry, keyed by unique_id suffix.
+ *  Mirrors the `f"{entry_id}_{suffix}"` convention the integrations use. */
+function bySuffix(entities, configEntryId) {
+  const out = {};
+  const prefix = `${configEntryId}_`;
+  for (const e of entities) {
+    if (e.config_entry_id !== configEntryId) continue;
+    if (typeof e.unique_id === "string" && e.unique_id.startsWith(prefix)) {
+      out[e.unique_id.slice(prefix.length)] = e.entity_id;
+    }
+  }
+  return out;
+}
+
+/** Group an integration's entities by the device they belong to.
+ *  Returns [{device, entities:[registryEntry,...]}] sorted by device name. */
+function groupByDevice(domainEntries, devices) {
+  const byId = new Map(devices.map((d) => [d.id, d]));
+  const groups = new Map();
+  for (const e of domainEntries) {
+    if (!e.device_id) continue;
+    if (!groups.has(e.device_id)) groups.set(e.device_id, []);
+    groups.get(e.device_id).push(e);
+  }
+  return [...groups.entries()]
+    .map(([id, list]) => ({ device: byId.get(id), entities: list }))
+    .filter((g) => g.device)
+    .sort((a, b) => deviceName(a.device).localeCompare(deviceName(b.device)));
+}
+
+function deviceName(device) {
+  return device.name_by_user || device.name || "";
+}
+
+/* --- Card helpers ---------------------------------------------------- */
+
+const heading = (text, icon, badges) => {
+  const card = { type: "heading", heading: text };
+  if (icon) card.icon = icon;
+  if (badges && badges.length) card.badges = badges;
+  return card;
+};
+
+const grid = (cards, columnSpan) => {
+  const section = { type: "grid", cards: cards.filter(Boolean) };
+  if (columnSpan) section.column_span = columnSpan;
+  return section;
+};
+
+const tile = (entity, extra = {}) => ({ type: "tile", entity, ...extra });
+
+/** Map card fed from the integration's geo_location source.
+ *  Deliberately uses geo_location_sources instead of an entity list: the
+ *  markers are hidden entities, and the source keeps working when the
+ *  set of markers changes between renders.
+ *  labelAttribute writes the marker label into the source object, which is
+ *  where the map card reads a geo-location source's label config from — the
+ *  card-level label_mode only applies to `entities`. */
+const mapCard = (domain, opts = {}) => ({
+  type: "map",
+  geo_location_sources: [
+    opts.labelAttribute
+      ? { source: domain, label_mode: "attribute", attribute: opts.labelAttribute }
+      : domain,
+  ],
+  entities: opts.entities || ["zone.home"],
+  default_zoom: opts.zoom ?? 8,
+  theme_mode: "auto",
+  grid_options: { columns: 12, rows: opts.rows ?? 6 },
+});
+
+/** Shown instead of an empty dashboard — an empty dashboard looks broken
+ *  and gives the user nothing to act on. */
+const emptyNotice = (text) => ({
+  type: "markdown",
+  content: text,
+});
+
+/* --- Localisation ----------------------------------------------------
+ * Strategies run in the frontend, so hass.language is authoritative.
+ * Falls back to English for any language the integration does not ship.
+ */
+function translator(strings, hass) {
+  const lang = (hass.language || "en").split("-")[0];
+  const table = strings[lang] || strings.en;
+  return (key) => (table && table[key]) || (strings.en && strings.en[key]) || key;
+}
+
+/* --- Strategy base ---------------------------------------------------
+ * Wraps the parts every strategy repeats: load registries, bail out
+ * gracefully when the integration is not set up, and hand the concrete
+ * strategy a prepared context.
+ */
+
+/* Options a user may put under `strategy:` in the raw configuration editor.
+ * They are handled here in the core, so every integration supports the same
+ * set without shipping its own option code:
+ *
+ *   map: false        drop the full-screen map view
+ *   title: "..."      override the title
+ *   max_columns: 3    column count of the generated section views
+ *
+ * Unknown keys are ignored on purpose - a strategy config is free-form, and a
+ * typo should not take the dashboard down. */
+const applyViewOptions = (views, config) => {
+  const cfg = config || {};
+  let out = views;
+  if (cfg.map === false) {
+    out = out.filter((v) => v.path !== "map");
+  }
+  const cols = Number(cfg.max_columns);
+  if (Number.isFinite(cols) && cols > 0) {
+    out = out.map((v) => (v.type === "sections" ? { ...v, max_columns: cols } : v));
+  }
+  return out;
+};
+
+/* A view strategy must return exactly ONE view, while build() yields a list.
+ * Section views are merged by concatenating their sections. A panel view (the
+ * map) has no sections, so its cards become one full-width section instead -
+ * that keeps the map visible rather than silently dropping it. */
+const flattenToView = (views, title, icon) => {
+  const sections = [];
+  for (const v of views) {
+    if (Array.isArray(v.sections) && v.sections.length) {
+      sections.push(...v.sections);
+    } else if (Array.isArray(v.cards) && v.cards.length) {
+      sections.push(
+        grid(
+          v.cards.map((c) => ({
+            ...c,
+            grid_options: { columns: "full", rows: (c.grid_options || {}).rows ?? 8 },
+          }))
+        )
+      );
+    }
+  }
+  return { title, icon, type: "sections", max_columns: 2, sections };
+};
+
+function defineDashboardStrategy(name, { domain, title, icon, build, strings, description }) {
+  /* Shared by both strategy flavours: everything up to the finished view list. */
+  const buildViews = async (config, hass) => {
+    const t = translator(strings || {}, hass);
+    let registry;
+    try {
+      registry = await loadRegistry(hass);
+    } catch (err) {
+      // Registry unreachable: render a readable message rather than
+      // letting the dashboard fail with a blank screen.
+      return [{ title: title, cards: [emptyNotice(`\u26a0\ufe0f ${err}`)] }];
+    }
+    const domainEntries = entriesOfDomain(registry.entities, domain);
+    if (!domainEntries.length) {
+      return [{ title: title, icon, cards: [emptyNotice(t("not_configured"))] }];
+    }
+    const views = await build({
+      hass,
+      config,
+      t,
+      domain,
+      entities: domainEntries,
+      devices: registry.devices,
+      allEntities: registry.entities,
+      helpers: { heading, grid, tile, mapCard, emptyNotice, bySuffix, groupByDevice, deviceName },
+    });
+    return applyViewOptions(views, config);
+  };
+
+  class Strategy extends HTMLElement {
+    static async generate(config, hass) {
+      const views = await buildViews(config, hass);
+      return { title: (config && config.title) || title, views };
+    }
+  }
+
+  /* The view flavour: fills a single view of a dashboard the user built
+   * themselves, so adjusting the layout no longer requires "take control". */
+  class ViewStrategy extends HTMLElement {
+    static async generate(config, hass) {
+      const views = await buildViews(config, hass);
+      return flattenToView(views, (config && config.title) || title, icon);
+    }
+  }
+
+  // getCreateSuggestions lets Home Assistant offer sensible defaults when the
+  // strategy is picked from the "new dashboard" dialog.
+  Strategy.getCreateSuggestions = () => ({ title, icon });
+
+  customElements.define(`ll-strategy-dashboard-${name}`, Strategy);
+  customElements.define(`ll-strategy-view-${name}`, ViewStrategy);
+
+  // Announce the strategy to the frontend so it appears in the dashboard
+  // creation dialog instead of having to be typed into the raw editor.
+  window.customStrategies = window.customStrategies || [];
+  if (!window.customStrategies.some((s) => s.type === name)) {
+    window.customStrategies.push({
+      type: name,
+      strategyType: "dashboard",
+      name: title,
+      description: description || "",
+    });
+  }
+  return Strategy;
+}
+
+/* =====================================================================
+ * Dashboard strategy: Swiss Avalanche Bulletin
+ * =====================================================================
+ * Reproduces the dashboard that earlier versions created in the user's
+ * Lovelace storage — but generated in the browser at render time, so
+ * nothing is written to .storage and the user stays in control. It also
+ * follows the config entries: a new location or station favourite shows
+ * up on the next page load, a removed one disappears with no leftovers.
+ *
+ * Usage — create an empty dashboard, open the raw configuration editor
+ * and replace its content with:
+ *
+ *     strategy:
+ *       type: custom:swiss-avalanche-bulletin
+ *     views: []
+ *
+ * Optional: `title:` overrides the dashboard title, `max_columns:` the
+ * column count of the generated view. There is no map view, so the
+ * core's `map: false` option has nothing to remove here.
+ * ===================================================================== */
+
+const SAB_STRINGS = {
+  en: {
+    view: "Avalanches",
+    imis_stations: "IMIS measuring stations",
+    nothing_to_show:
+      "### Nothing to show\n\nEvery entity of this integration is hidden. Unhide at least one under **Settings → Devices & services → Entities**.",
+    not_configured:
+      "### Swiss Avalanche Bulletin is not set up yet\n\nAdd the integration under **Settings → Devices & services** first. This dashboard then fills itself — there is nothing to configure here.",
+  },
+  de: {
+    view: "Lawinen",
+    imis_stations: "IMIS-Messstationen",
+    nothing_to_show:
+      "### Nichts anzuzeigen\n\nAlle Entitäten dieser Integration sind ausgeblendet. Blende unter **Einstellungen → Geräte & Dienste → Entitäten** mindestens eine wieder ein.",
+    not_configured:
+      "### Swiss Avalanche Bulletin ist noch nicht eingerichtet\n\nFüge die Integration zuerst unter **Einstellungen → Geräte & Dienste** hinzu. Dieses Dashboard füllt sich danach von selbst — hier ist nichts einzustellen.",
+  },
+  fr: {
+    view: "Avalanches",
+    imis_stations: "Stations de mesure IMIS",
+    nothing_to_show:
+      "### Rien à afficher\n\nToutes les entités de cette intégration sont masquées. Réaffichez-en au moins une sous **Paramètres → Appareils et services → Entités**.",
+    not_configured:
+      "### Swiss Avalanche Bulletin n'est pas encore configuré\n\nAjoutez d'abord l'intégration sous **Paramètres → Appareils et services**. Ce tableau de bord se remplit ensuite tout seul.",
+  },
+  it: {
+    view: "Valanghe",
+    imis_stations: "Stazioni di misura IMIS",
+    nothing_to_show:
+      "### Niente da mostrare\n\nTutte le entità di questa integrazione sono nascoste. Rendine visibile almeno una in **Impostazioni → Dispositivi e servizi → Entità**.",
+    not_configured:
+      "### Swiss Avalanche Bulletin non è ancora configurato\n\nAggiungi prima l'integrazione in **Impostazioni → Dispositivi e servizi**. Questa dashboard si riempie poi da sola.",
+  },
+};
+
+/* The bundled station card is configured with a station slug, not with an
+ * entity: it reads sensor.slf_imis_<slug>_<key> straight from the state
+ * machine. Its picker derives the slugs with this very pattern, so the
+ * strategy applies the same one to the station device's registry entries
+ * — whatever the card will look up is what the strategy hands it. */
+const SAB_STATION_ID =
+  /^sensor\.slf_imis_(.+)_(snow_height|air_temperature|wind_speed|wind_direction|humidity)$/;
+
+const SAB_stationSlug = (registryEntries) => {
+  for (const e of registryEntries) {
+    const m = SAB_STATION_ID.exec(e.entity_id);
+    if (m) return m[1];
+  }
+  return null;
+};
+
+defineDashboardStrategy("swiss-avalanche-bulletin", {
+  domain: "slf_avalanche",
+  title: "Swiss Avalanche Bulletin",
+  icon: "mdi:snowflake-alert",
+  description:
+    "Danger level, warning region and avalanche problems per location, plus a card per IMIS station favourite — generated live from the integration.",
+  strings: SAB_STRINGS,
+
+  async build({ t, entities, devices, helpers }) {
+    const { heading, grid, tile, emptyNotice, bySuffix, groupByDevice, deviceName } = helpers;
+
+    // Two kinds of device, told apart by the unique_id scheme of the sensor
+    // platform: a bulletin entry owns one device whose entities are
+    // `<entry>_danger_level`, `<entry>_region` and `<entry>_problem_N`; an
+    // IMIS entry owns one device per station, `<entry>_imis_<code>_<key>`.
+    // groupByDevice already sorts by device name, which keeps the layout
+    // stable between reloads.
+    const bulletinSections = [];
+    const stationsByEntry = new Map();
+
+    for (const group of groupByDevice(entities, devices)) {
+      const entryId = group.entities.find((e) => e.config_entry_id)?.config_entry_id;
+      if (!entryId) continue;
+
+      const isStation = group.entities.some(
+        (e) => typeof e.unique_id === "string" && e.unique_id.startsWith(`${entryId}_imis_`)
+      );
+      if (isStation) {
+        if (!stationsByEntry.has(entryId)) stationsByEntry.set(entryId, []);
+        stationsByEntry.get(entryId).push(group);
+        continue;
+      }
+
+      // --- Bulletin location ---------------------------------------------
+      // Suffix lookup instead of entity_id patterns, so a renamed entity
+      // keeps its place. Hidden entities are the user's choice — left out.
+      const ids = bySuffix(
+        group.entities.filter((e) => !e.hidden_by),
+        entryId
+      );
+      const badges = ids.danger_level
+        ? [{ type: "entity", entity: ids.danger_level, show_state: true }]
+        : undefined;
+      const cards = [
+        heading(deviceName(group.device), "mdi:snowflake-alert", badges),
+        ids.danger_level && tile(ids.danger_level, { color: "red", grid_options: { columns: 6 } }),
+        ids.region && tile(ids.region, { grid_options: { columns: 6 } }),
+        // Up to three problems in the order the bulletin reports them;
+        // outside the season they simply read "unknown".
+        ...Object.keys(ids)
+          .filter((suffix) => /^problem_\d+$/.test(suffix))
+          .sort()
+          .map((suffix) => tile(ids[suffix], { grid_options: { columns: 12 } })),
+      ].filter(Boolean);
+      // Full width like the old dashboard's sections: the half-width tiles
+      // pair up and a problem tile spans the row instead of a quarter page.
+      if (cards.length > 1) bulletinSections.push(grid(cards, 2));
+    }
+
+    // --- IMIS stations: one section per entry, one card per station ------
+    // Full-width section with half-width cards, so two stations sit side by
+    // side — the same layout the earlier auto-created dashboard used.
+    const imisSections = [];
+    for (const groups of stationsByEntry.values()) {
+      const cards = [heading(t("imis_stations"), "mdi:ruler")];
+      for (const group of groups) {
+        // A station whose sensors the user hid entirely stays off the
+        // dashboard, like a hidden bulletin entity does above.
+        const visible = group.entities.filter((e) => !e.hidden_by);
+        if (!visible.length) continue;
+        const slug = SAB_stationSlug(visible);
+        if (slug) {
+          cards.push({
+            type: "custom:slf-imis-station-card",
+            station: slug,
+            grid_options: { columns: 6 },
+          });
+          continue;
+        }
+        // Entity ids renamed by hand no longer match what the card reads,
+        // and it would only show "no data" — plain tiles keep the values
+        // visible instead.
+        cards.push(
+          { ...heading(deviceName(group.device), "mdi:snowflake"), heading_style: "subtitle" },
+          ...visible
+            .map((e) => e.entity_id)
+            .sort()
+            .map((entityId) => tile(entityId, { grid_options: { columns: 6 } }))
+        );
+      }
+      imisSections.push(grid(cards, 2));
+    }
+
+    const sections = [...bulletinSections, ...imisSections];
+    if (!sections.length) {
+      // Entities exist, but every one of them is hidden: say so instead of
+      // rendering an empty view that looks broken.
+      return [
+        { title: t("view"), icon: "mdi:snowflake-alert", cards: [emptyNotice(t("nothing_to_show"))] },
+      ];
+    }
+
+    return [
+      {
+        title: t("view"),
+        path: "avalanches",
+        icon: "mdi:snowflake-alert",
+        type: "sections",
+        max_columns: 2,
+        sections,
+      },
+    ];
+  },
+});
+})();

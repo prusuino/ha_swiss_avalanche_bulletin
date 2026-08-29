@@ -1,5 +1,43 @@
 # Changelog
 
+## 1.2.1 — 2026-08-29
+
+Version 1.2.0 removed the automatically created "Avalanches" dashboard
+without offering anything in its place. This release adds the replacement:
+a dashboard strategy.
+
+**New:**
+
+- A **dashboard strategy**, `custom:swiss-avalanche-bulletin`. A strategy
+  is a recipe Home Assistant renders in the browser at display time: it
+  stores nothing, overwrites nothing, and follows your config entries on
+  every page load — a new location or station favourite appears by itself,
+  a removed one disappears with no leftover card. It builds the layout the
+  old dashboard had — one section per bulletin location (danger level with
+  a badge, warning region) and one section per IMIS entry with a station
+  card per favourite — and adds tiles for the up to three avalanche
+  problems to each bulletin section. Create an
+  empty dashboard and set `strategy: {type: custom:swiss-avalanche-bulletin}`
+  in the raw configuration editor, or pick *Swiss Avalanche Bulletin* in
+  the **+ Add dashboard** dialog; the README has the details. The strategy
+  also registers as a **view strategy**, so it can fill a single view of a
+  dashboard you already have, and honours `title` and `max_columns` under
+  `strategy:`.
+- The strategy ships inside the existing card file
+  `/slf_avalanche/static/slf-imis-card.js`, so the one resource you already
+  register for the card covers both — no second resource. The integration
+  still only *serves* the file; adding it as a resource remains the
+  one-time manual step described in the README.
+
+**Upgrading:**
+
+- The card file changed, and it is served with long-lived cache headers. If
+  the strategy is not offered after the update, append or raise a version on
+  the resource URL (e.g. `/slf_avalanche/static/slf-imis-card.js?v=1.2.1`)
+  or do a hard reload (Ctrl+F5 / Cmd+Shift+R).
+- No changes to sensors, devices or the setup flow. The minimum Home
+  Assistant version stays at 2024.12.0.
+
 ## 1.2.0 — 2026-08-29
 
 The integration no longer creates or deletes dashboards and Lovelace

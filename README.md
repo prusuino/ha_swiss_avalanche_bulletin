@@ -41,24 +41,87 @@ Each station becomes a device with sensors for what it actually measures, update
 | Air temperature, snow surface temperature, humidity | most stations |
 | Wind speed, gusts, direction | wind stations and many snow stations |
 
-## Bundled card
+## Bundled card & dashboard
 
-The integration ships a Lovelace card, **SLF IMIS Station** (`custom:slf-imis-station-card`), with a visual editor — snow depth as the hero value, temperatures, wind with direction arrow, measurement age and the required SLF attribution.
+The integration ships a Lovelace card, **SLF IMIS Station** (`custom:slf-imis-station-card`), with a visual editor — snow depth as the hero value, temperatures, wind with direction arrow, measurement age and the required SLF attribution — and, in the same file, a **dashboard strategy** that assembles a complete avalanche dashboard from your config entries at display time.
 
-The card file is served by the integration, but you register it as a Lovelace resource yourself — the integration does not write to your dashboard configuration.
+The card file is served by the integration, but you register it as a Lovelace resource yourself — the integration does not write to your dashboard configuration. It is a one-time step.
 
-### 1. Register the card resource (once)
+### Adding the card as a resource (once)
 
-1. Go to **Settings → Dashboards → ⋮ (top right) → Resources → + Add resource**. The *Resources* entry is only shown when **Advanced mode** is enabled in your user profile (click your name at the bottom of the sidebar).
-2. URL: `/slf_avalanche/static/slf-imis-card.js`
-3. Resource type: **JavaScript module**
-4. Reload the page.
+**Settings → Dashboards → ⋮ (top right) → Resources → + Add resource** — the *Resources* entry is only shown when **Advanced mode** is enabled in your user profile (click your name at the bottom of the sidebar).
 
-The card then appears as **SLF IMIS Station** in the normal card picker, with its visual editor.
+| Field | Value |
+|---|---|
+| URL | `/slf_avalanche/static/slf-imis-card.js?v=1.2.1` |
+| Resource type | JavaScript module |
 
-> **After updating the integration:** the card is served without a version query string, so your browser may keep the old copy cached. If a new card feature does not show up, do a hard reload (Ctrl+F5 / Cmd+Shift+R), or append a version to the resource URL (e.g. `/slf_avalanche/static/slf-imis-card.js?v=2`) to force a refresh.
+Then reload the page (Ctrl/Cmd+Shift+R). The card appears as **SLF IMIS Station** in the normal card picker, with its visual editor; the same file also contains the [dashboard strategy](#dashboard), so this one resource covers both.
 
-### 2. Build your dashboard
+> **After updating the integration:** the card file is served with long-lived cache headers, so your browser may keep the old copy. The `?v=` part of the URL is only there to defeat that cache — if a new feature does not show up after an update, raise it to the new version (or do a hard reload, Ctrl+F5 / Cmd+Shift+R).
+
+### Dashboard
+
+The strategy is a recipe Home Assistant renders in the browser, rather than a dashboard written into your configuration. Nothing is stored, nothing is overwritten, and the result follows your config entries — add a location or a station favourite and it appears on the next page load; remove one and it is gone, with no leftover card.
+
+Requires the card [registered as a resource](#adding-the-card-as-a-resource-once) (the strategy ships in the same file). Then:
+
+1. **Settings → Dashboards → + Add dashboard → New dashboard from scratch**, give it a name.
+2. Open it, then **✏️ (edit) → ⋮ → Raw configuration editor**.
+3. Replace the entire content with:
+
+```yaml
+strategy:
+  type: custom:swiss-avalanche-bulletin
+views: []
+```
+
+4. Save.
+
+You get one **Avalanches** view (two columns) with:
+
+- one full-width section per **bulletin location** — a heading named after the location's device, with the current danger level as a badge, then tiles for the danger level, the warning region and the up to three avalanche problems (outside the season the problems simply read "unknown");
+- one full-width section per **IMIS entry** — "IMIS measuring stations" with a station card per favourite, two side by side.
+
+The strategy also appears under **+ Add dashboard** as *Swiss Avalanche Bulletin*, which does the same thing without the raw editor.
+
+Everything the strategy produces is a normal Home Assistant dashboard. If you would rather arrange things yourself, build your own dashboard with the bundled card and the entities above — the strategy is an offer, not a requirement.
+
+### Adjusting the strategy
+
+A strategy dashboard has no card editor — the layout is generated fresh on every load. You still have two ways to shape it without giving that up:
+
+**Options.** Anything you add under `strategy:` is passed to the recipe:
+
+```yaml
+strategy:
+  type: custom:swiss-avalanche-bulletin
+  title: My title
+  max_columns: 3
+views: []
+```
+
+| Option | Effect |
+|---|---|
+| `title` | dashboard title |
+| `max_columns` | column count of the generated view |
+
+**One view inside your own dashboard.** Instead of a separate dashboard, let the strategy fill a single view of one you already have. Open your dashboard's raw configuration editor and add a view:
+
+```yaml
+views:
+  - title: Home
+    # ... your own cards ...
+  - title: Avalanches
+    strategy:
+      type: custom:swiss-avalanche-bulletin
+```
+
+That view is regenerated like the full dashboard is, so new config entries still appear by themselves, while every other view stays yours to edit. The same options work here too.
+
+> **Take control** (⋮ menu) turns a strategy dashboard into a static one you can edit card by card — but it is one-way: the dashboard stops following your config entries from then on. Prefer the two approaches above.
+
+### Building it yourself
 
 Add the cards wherever you like. An IMIS station card takes the station code in lower case (visible in the integration options, e.g. `slf2`):
 
@@ -84,7 +147,7 @@ Replace `home` with your location label, and check the exact entity IDs under **
 
 ## Language
 
-Entity names, device info, and the danger-level/avalanche-problem text all follow the official multilingual EAWS (European Avalanche Warning Services) terminology and adapt automatically to your Home Assistant language setting — German, English, French, and Italian are supported, with English as the fallback for any other language.
+Entity names, device info, and the danger-level/avalanche-problem text all follow the official multilingual EAWS (European Avalanche Warning Services) terminology and adapt automatically to your Home Assistant language setting — German, English, French, and Italian are supported, with English as the fallback for any other language. The bundled card and the dashboard strategy follow the language of the Home Assistant frontend the same way.
 
 ## Installation
 
