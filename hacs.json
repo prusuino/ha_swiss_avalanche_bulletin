@@ -1,5 +1,7 @@
 {
   "name": "Swiss Avalanche Bulletin (SLF)",
+  "zip_release": true,
+  "filename": "slf_avalanche.zip",
   "render_readme": true,
   "homeassistant": "2024.12.0"
 }
