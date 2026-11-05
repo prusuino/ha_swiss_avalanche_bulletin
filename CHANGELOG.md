@@ -1,5 +1,12 @@
 # Changelog
 
+## 1.3.1 — 2026-11-05
+
+- **Maintenance release for the Home Assistant Marketplace.** Home Assistant 2026.11 replaces HACS with the built-in Marketplace (Settings → Marketplace); the README now describes installation and updates through it. The release ships the integration as a zip asset, which the Marketplace (and HACS) download in one piece.
+- **Changed: the declared minimum Home Assistant version is 2025.4** (was 2024.12). The code itself needs nothing newer than before; this aligns the floor across the author's integrations to the version they are tested against.
+- Internal: `DeviceInfo` is imported from the device registry helper and config-flow results are typed as `ConfigFlowResult`, following current Home Assistant conventions. No behaviour changes.
+- No functional changes. Existing entities, their ids and your configuration are unchanged.
+
 ## 1.3.0 — 2026-08-29
 
 Follow-ups from a review of the integration. Nothing to do after

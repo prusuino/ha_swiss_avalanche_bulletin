@@ -5,9 +5,8 @@ import logging
 from typing import Any
 
 import voluptuous as vol
-from homeassistant.config_entries import ConfigEntry, ConfigFlow, OptionsFlow
+from homeassistant.config_entries import ConfigEntry, ConfigFlow, ConfigFlowResult, OptionsFlow
 from homeassistant.core import HomeAssistant, callback
-from homeassistant.data_entry_flow import FlowResult
 from homeassistant.helpers.selector import (
     SelectOptionDict,
     SelectSelector,
@@ -115,12 +114,12 @@ class SlfAvalancheConfigFlow(ConfigFlow, domain=DOMAIN):
     def __init__(self) -> None:
         self._stations: list[dict] = []
 
-    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+    async def async_step_user(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         return self.async_show_menu(step_id="user", menu_options=["bulletin", "imis"])
 
     async def async_step_bulletin(
         self, user_input: dict[str, Any] | None = None
-    ) -> FlowResult:
+    ) -> ConfigFlowResult:
         """Set up the avalanche bulletin for a location (one instance per location)."""
         errors: dict[str, str] = {}
 
@@ -159,7 +158,7 @@ class SlfAvalancheConfigFlow(ConfigFlow, domain=DOMAIN):
         )
         return self.async_show_form(step_id="bulletin", data_schema=schema, errors=errors)
 
-    async def async_step_imis(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+    async def async_step_imis(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         """Set up favourite IMIS measuring stations (independent of a bulletin)."""
         errors: dict[str, str] = {}
 
@@ -215,7 +214,7 @@ class SlfAvalancheOptionsFlow(OptionsFlow):
     def __init__(self) -> None:
         self._stations: list[dict] = []
 
-    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> FlowResult:
+    async def async_step_init(self, user_input: dict[str, Any] | None = None) -> ConfigFlowResult:
         entry = self.config_entry
         if entry.data.get(CONF_MODE, MODE_BULLETIN) != MODE_IMIS:
             return self.async_abort(reason="no_options")
