@@ -1,6 +1,6 @@
 # Swiss Avalanche Bulletin (SLF)
 
-[![hacs_badge](https://img.shields.io/badge/HACS-Default-41BDF5.svg)](https://github.com/hacs/integration)
+[![marketplace_badge](https://img.shields.io/badge/Marketplace-Default-41BDF5.svg)](https://hacs.xyz/docs/marketplace/)
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 <a href="https://www.buymeacoffee.com/prusuino"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" height="20"></a>
 
@@ -157,15 +157,15 @@ Entity names, device info, and the danger-level/avalanche-problem text all follo
 
 ## Installation
 
-### HACS (recommended)
+### Home Assistant Marketplace (recommended)
 
-1. Open **HACS**, search for **"Swiss Avalanche Bulletin"** and download it — or use the button, which opens the integration directly in your HACS:
+1. Open **Settings → Marketplace** (Home Assistant 2026.11 or newer; on older versions open **HACS**), search for **"Swiss Avalanche Bulletin"** and download it — or use the button, which opens the integration directly in your Marketplace:
 
-   [![Open in HACS](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=prusuino&repository=ha_swiss_avalanche_bulletin&category=integration)
+   [![Open in Marketplace](https://my.home-assistant.io/badges/hacs_repository.svg)](https://my.home-assistant.io/redirect/hacs_repository/?owner=prusuino&repository=ha_swiss_avalanche_bulletin&category=integration)
 
 2. Restart Home Assistant.
 
-The integration is listed in the HACS default store, so no custom repository is needed.
+The integration is listed in the Marketplace default catalog (formerly the HACS default store), so no custom repository is needed.
 
 ### Manual
 
