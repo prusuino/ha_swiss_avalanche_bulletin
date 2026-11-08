@@ -1,0 +1,18 @@
+{
+  "triggers": {
+    "danger_level_reached": {
+      "trigger": "mdi:alert-octagon"
+    },
+    "danger_level_changed": {
+      "trigger": "mdi:swap-vertical"
+    }
+  },
+  "conditions": {
+    "is_danger_level_at_least": {
+      "condition": "mdi:alert-octagon"
+    },
+    "is_danger_level_below": {
+      "condition": "mdi:alert-octagon-outline"
+    }
+  }
+}

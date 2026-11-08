@@ -1,0 +1,83 @@
+blueprint:
+  name: Swiss Avalanche Bulletin – notify on danger level
+  description: >-
+    Sends a notification to your phone when the avalanche danger level of
+    one of your bulletin locations rises to the level you set or above:
+    region, level, the level's meaning and how long the bulletin is valid.
+    It fires once when the level is reached, not on every refresh while it
+    stays high.
+
+
+    Add your own steps in the action field, for example a text-to-speech
+    announcement; the text is available there as `{{ message }}`.
+  domain: automation
+  source_url: https://github.com/prusuino/ha_swiss_avalanche_bulletin/blob/main/blueprints/automation/avalanche_danger_notification.yaml
+  author: prusuino
+  homeassistant:
+    min_version: 2025.4.0
+  input:
+    danger_sensors:
+      name: Danger level sensors
+      description: The danger level sensor of each bulletin location you want to be told about.
+      selector:
+        entity:
+          multiple: true
+          filter:
+            - integration: slf_avalanche
+              domain: sensor
+    minimum_level:
+      name: Minimum level
+      description: "Notify from this danger level: 1 low, 2 moderate, 3 considerable, 4 high, 5 very high."
+      default: 3
+      selector:
+        number:
+          min: 1
+          max: 5
+          step: 1
+          mode: slider
+    notify_device:
+      name: Phone
+      description: The phone (Home Assistant Companion app) that receives the notification.
+      selector:
+        device:
+          filter:
+            - integration: mobile_app
+    extra_actions:
+      name: Additional actions
+      description: Run after the notification. The notification text is available as `{{ message }}`.
+      default: []
+      selector:
+        action:
+
+mode: queued
+max_exceeded: silent
+
+triggers:
+  - trigger: state
+    entity_id: !input danger_sensors
+    not_to:
+      - unknown
+      - unavailable
+
+variables:
+  notify_device: !input notify_device
+  minimum_level: !input minimum_level
+  level: "{{ trigger.to_state.state | int(0) }}"
+  previous_level: "{{ trigger.from_state.state | int(0) if trigger.from_state is not none else 0 }}"
+  region: "{{ trigger.to_state.attributes.region or trigger.to_state.name }}"
+  danger_text: "{{ trigger.to_state.attributes.danger_text or '' }}"
+  valid_to: "{{ trigger.to_state.attributes.valid_to or '' }}"
+  message: >-
+    {{ region }}: avalanche danger level {{ level }}{{ ' – ' ~ danger_text if danger_text else '' }}{{ ', valid until ' ~ (valid_to | as_timestamp(0) | timestamp_custom('%a %H:%M')) if valid_to else '' }}.
+
+conditions:
+  # The level reached the minimum now; it was below before (or unknown).
+  - condition: template
+    value_template: "{{ level >= (minimum_level | int) and previous_level < (minimum_level | int) }}"
+
+actions:
+  - action: "notify.mobile_app_{{ device_attr(notify_device, 'name') | slugify }}"
+    data:
+      title: "Avalanche danger level {{ level }}"
+      message: "{{ message }}"
+  - sequence: !input extra_actions

@@ -74,5 +74,66 @@
       "no_station": "Sélectionnez au moins une station.",
       "station_already_configured": "Au moins une des stations sélectionnées est déjà un favori d'une autre entrée."
     }
+  },
+  "triggers": {
+    "danger_level_reached": {
+      "name": "Degré de danger d'avalanche atteint",
+      "description": "Se déclenche quand le degré de danger d'avalanche d'un lieu du bulletin atteint ou dépasse le niveau minimal (1 faible, 2 limité, 3 marqué, 4 fort, 5 très fort). Se déclenche une fois quand le niveau est atteint, pas à chaque changement au-dessus.",
+      "fields": {
+        "behavior": {
+          "name": "Déclencher quand"
+        },
+        "for": {
+          "name": "Pendant au moins"
+        },
+        "minimum_level": {
+          "name": "Niveau minimal"
+        }
+      }
+    },
+    "danger_level_changed": {
+      "name": "Degré de danger d'avalanche modifié",
+      "description": "Se déclenche quand le degré de danger d'avalanche d'un lieu du bulletin passe à un autre degré, vers le haut ou vers le bas.",
+      "fields": {
+        "behavior": {
+          "name": "Déclencher quand"
+        },
+        "for": {
+          "name": "Pendant au moins"
+        }
+      }
+    }
+  },
+  "conditions": {
+    "is_danger_level_at_least": {
+      "name": "Degré de danger d'avalanche est au moins",
+      "description": "Remplie tant que le degré de danger d'avalanche d'un lieu du bulletin est au degré indiqué ou au-dessus.",
+      "fields": {
+        "behavior": {
+          "name": "Condition remplie si"
+        },
+        "for": {
+          "name": "Pendant au moins"
+        },
+        "level": {
+          "name": "Niveau"
+        }
+      }
+    },
+    "is_danger_level_below": {
+      "name": "Degré de danger d'avalanche est inférieur à",
+      "description": "Remplie tant que le degré de danger d'avalanche d'un lieu du bulletin est en dessous du degré indiqué.",
+      "fields": {
+        "behavior": {
+          "name": "Condition remplie si"
+        },
+        "for": {
+          "name": "Pendant au moins"
+        },
+        "level": {
+          "name": "Niveau"
+        }
+      }
+    }
   }
 }

@@ -1,0 +1,44 @@
+.danger_target: &danger_target
+  entity:
+    - integration: slf_avalanche
+      domain: sensor
+
+danger_level_reached:
+  fields:
+    behavior:
+      required: true
+      default: each
+      selector:
+        automation_behavior:
+          mode: trigger
+    for:
+      required: true
+      default: 00:00:00
+      selector:
+        duration:
+    minimum_level:
+      required: false
+      default: 3
+      example: 3
+      selector:
+        number:
+          min: 1
+          max: 5
+          step: 1
+          mode: slider
+  target: *danger_target
+
+danger_level_changed:
+  fields:
+    behavior:
+      required: true
+      default: each
+      selector:
+        automation_behavior:
+          mode: trigger
+    for:
+      required: true
+      default: 00:00:00
+      selector:
+        duration:
+  target: *danger_target

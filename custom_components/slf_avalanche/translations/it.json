@@ -74,5 +74,66 @@
       "no_station": "Seleziona almeno una stazione.",
       "station_already_configured": "Almeno una delle stazioni selezionate è già tra i preferiti di un'altra voce."
     }
+  },
+  "triggers": {
+    "danger_level_reached": {
+      "name": "Grado di pericolo valanghe raggiunto",
+      "description": "Si attiva quando il grado di pericolo valanghe di una località del bollettino raggiunge o supera il livello minimo (1 debole, 2 moderato, 3 marcato, 4 forte, 5 molto forte). Si attiva una volta al raggiungimento, non a ogni cambiamento al di sopra.",
+      "fields": {
+        "behavior": {
+          "name": "Attiva quando"
+        },
+        "for": {
+          "name": "Per almeno"
+        },
+        "minimum_level": {
+          "name": "Livello minimo"
+        }
+      }
+    },
+    "danger_level_changed": {
+      "name": "Grado di pericolo valanghe cambiato",
+      "description": "Si attiva quando il grado di pericolo valanghe di una località del bollettino passa a un altro grado, verso l'alto o verso il basso.",
+      "fields": {
+        "behavior": {
+          "name": "Attiva quando"
+        },
+        "for": {
+          "name": "Per almeno"
+        }
+      }
+    }
+  },
+  "conditions": {
+    "is_danger_level_at_least": {
+      "name": "Grado di pericolo valanghe è almeno",
+      "description": "Soddisfatta finché il grado di pericolo valanghe di una località del bollettino è al grado indicato o superiore.",
+      "fields": {
+        "behavior": {
+          "name": "Condizione soddisfatta se"
+        },
+        "for": {
+          "name": "Per almeno"
+        },
+        "level": {
+          "name": "Livello"
+        }
+      }
+    },
+    "is_danger_level_below": {
+      "name": "Grado di pericolo valanghe è inferiore a",
+      "description": "Soddisfatta finché il grado di pericolo valanghe di una località del bollettino è sotto il grado indicato.",
+      "fields": {
+        "behavior": {
+          "name": "Condizione soddisfatta se"
+        },
+        "for": {
+          "name": "Per almeno"
+        },
+        "level": {
+          "name": "Livello"
+        }
+      }
+    }
   }
 }

@@ -74,5 +74,66 @@
       "no_station": "Bitte mindestens eine Station auswählen.",
       "station_already_configured": "Mindestens eine der gewählten Stationen ist bereits Favorit eines anderen Eintrags."
     }
+  },
+  "triggers": {
+    "danger_level_reached": {
+      "name": "Lawinengefahrenstufe erreicht",
+      "description": "Löst aus, wenn die Lawinengefahrenstufe eines Bulletin-Standorts auf die Mindeststufe oder höher steigt (1 gering, 2 mässig, 3 erheblich, 4 gross, 5 sehr gross). Feuert einmal beim Erreichen, nicht bei jeder weiteren Änderung darüber.",
+      "fields": {
+        "behavior": {
+          "name": "Auslösen wenn"
+        },
+        "for": {
+          "name": "Mindestens für"
+        },
+        "minimum_level": {
+          "name": "Mindeststufe"
+        }
+      }
+    },
+    "danger_level_changed": {
+      "name": "Lawinengefahrenstufe geändert",
+      "description": "Löst aus, wenn die Lawinengefahrenstufe eines Bulletin-Standorts auf eine andere Stufe wechselt, nach oben oder unten.",
+      "fields": {
+        "behavior": {
+          "name": "Auslösen wenn"
+        },
+        "for": {
+          "name": "Mindestens für"
+        }
+      }
+    }
+  },
+  "conditions": {
+    "is_danger_level_at_least": {
+      "name": "Lawinengefahrenstufe ist mindestens",
+      "description": "Erfüllt, solange die Lawinengefahrenstufe eines Bulletin-Standorts auf der Stufe oder darüber liegt.",
+      "fields": {
+        "behavior": {
+          "name": "Bedingung erfüllt wenn"
+        },
+        "for": {
+          "name": "Mindestens für"
+        },
+        "level": {
+          "name": "Stufe"
+        }
+      }
+    },
+    "is_danger_level_below": {
+      "name": "Lawinengefahrenstufe ist unter",
+      "description": "Erfüllt, solange die Lawinengefahrenstufe eines Bulletin-Standorts unter der Stufe liegt.",
+      "fields": {
+        "behavior": {
+          "name": "Bedingung erfüllt wenn"
+        },
+        "for": {
+          "name": "Mindestens für"
+        },
+        "level": {
+          "name": "Stufe"
+        }
+      }
+    }
   }
 }

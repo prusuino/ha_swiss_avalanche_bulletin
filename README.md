@@ -151,6 +151,45 @@ entity: sensor.slf_avalanche_region_home_ab12
 
 Replace `home_ab12` with your location label and entry part, and check the exact entity IDs under **Settings → Devices & Services → Entities**.
 
+## Automations
+
+### Blueprint: notify on danger level
+
+The repository ships a blueprint that sends a notification to your phone when the avalanche danger level of one of your bulletin locations rises to a level you choose or above: region, level, the level's meaning and how long the bulletin is valid, once when the level is reached. Import it once, then create an automation from it:
+
+[![Import blueprint](https://my.home-assistant.io/badges/blueprint_import.svg)](https://my.home-assistant.io/redirect/blueprint_import/?blueprint_url=https%3A%2F%2Fgithub.com%2Fprusuino%2Fha_swiss_avalanche_bulletin%2Fblob%2Fmain%2Fblueprints%2Fautomation%2Favalanche_danger_notification.yaml)
+
+An action field takes your own steps; the text is available there as `{{ message }}`.
+
+### Triggers and conditions in the automation editor
+
+On Home Assistant 2026.10 or newer the integration adds its own entries to the automation editor's trigger list, on 2026.11 or newer also to the condition list. They target the danger-level sensors of your bulletin locations (pick an entity, the location's device or an area); the usual *for* duration and behaviour options apply.
+
+| Trigger | Fires when |
+|---|---|
+| **Avalanche danger level reached** | the danger level of a location rises to the **minimum level** (1–5, default 3) or above — once, not on every change above it |
+| **Avalanche danger level changed** | the danger level of a location changes to another level, up or down |
+
+| Condition | Passes while |
+|---|---|
+| **Avalanche danger level is at least** | the danger level of a location is at the **level** or above |
+| **Avalanche danger level is below** | the danger level of a location is below the **level** |
+
+```yaml
+triggers:
+  - trigger: slf_avalanche.danger_level_reached
+    target:
+      entity_id: sensor.slf_avalanche_danger_level_home_ab12
+    options:
+      minimum_level: 3
+conditions:
+  - condition: slf_avalanche.is_danger_level_below
+    target:
+      entity_id: sensor.slf_avalanche_danger_level_home_ab12
+    options:
+      level: 4
+```
+
 ## Language
 
 Entity names, device info, and the danger-level/avalanche-problem text all follow the official multilingual EAWS (European Avalanche Warning Services) terminology and adapt automatically to your Home Assistant language setting — German, English, French, and Italian are supported, with English as the fallback for any other language. The bundled card and the dashboard strategy follow the language of the Home Assistant frontend the same way.

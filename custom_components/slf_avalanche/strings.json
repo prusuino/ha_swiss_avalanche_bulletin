@@ -74,5 +74,66 @@
       "no_station": "Select at least one station.",
       "station_already_configured": "At least one of the selected stations is already a favourite of another entry."
     }
+  },
+  "triggers": {
+    "danger_level_reached": {
+      "name": "Avalanche danger level reached",
+      "description": "Triggers when the avalanche danger level of a bulletin location rises to the minimum level or above (1 low, 2 moderate, 3 considerable, 4 high, 5 very high). Fires once when the level is reached, not on every change above it.",
+      "fields": {
+        "behavior": {
+          "name": "Trigger when"
+        },
+        "for": {
+          "name": "For at least"
+        },
+        "minimum_level": {
+          "name": "Minimum level"
+        }
+      }
+    },
+    "danger_level_changed": {
+      "name": "Avalanche danger level changed",
+      "description": "Triggers when the avalanche danger level of a bulletin location changes to another level, up or down.",
+      "fields": {
+        "behavior": {
+          "name": "Trigger when"
+        },
+        "for": {
+          "name": "For at least"
+        }
+      }
+    }
+  },
+  "conditions": {
+    "is_danger_level_at_least": {
+      "name": "Avalanche danger level is at least",
+      "description": "Passes while the avalanche danger level of a bulletin location is at the level or above.",
+      "fields": {
+        "behavior": {
+          "name": "Condition passes when"
+        },
+        "for": {
+          "name": "For at least"
+        },
+        "level": {
+          "name": "Level"
+        }
+      }
+    },
+    "is_danger_level_below": {
+      "name": "Avalanche danger level is below",
+      "description": "Passes while the avalanche danger level of a bulletin location is below the level.",
+      "fields": {
+        "behavior": {
+          "name": "Condition passes when"
+        },
+        "for": {
+          "name": "For at least"
+        },
+        "level": {
+          "name": "Level"
+        }
+      }
+    }
   }
 }
