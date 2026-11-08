@@ -24,12 +24,29 @@
         "data": {
           "imis_stations": "Stazioni"
         }
+      },
+      "reconfigure_bulletin": {
+        "title": "Modificare posizione o etichetta",
+        "description": "Modifica la posizione o l'etichetta di questa voce del bollettino. La regione di allerta viene determinata di nuovo per le nuove coordinate. Le entità mantengono i loro ID e la cronologia; il nome del dispositivo segue l'etichetta.",
+        "data": {
+          "name": "Etichetta (opzionale, p.es. \"Casa\" o \"Baita\")",
+          "latitude": "Latitudine",
+          "longitude": "Longitudine"
+        }
+      },
+      "reconfigure_imis": {
+        "title": "Cambiare stazioni",
+        "description": "Modifica le stazioni di misura IMIS preferite di questa voce. L'elenco è ordinato per distanza (❄ stazione neve, 🌬 stazione vento), digita per cercare. Le stazioni che restano selezionate mantengono entità e cronologia; i dispositivi delle stazioni rimosse vengono eliminati.",
+        "data": {
+          "imis_stations": "Stazioni"
+        }
       }
     },
     "abort": {
       "already_configured": "Questa posizione è già configurata.",
       "imis_unavailable": "Impossibile recuperare l'elenco delle stazioni IMIS. Riprova più tardi.",
-      "unknown": "Errore imprevisto. I dettagli sono nel registro di Home Assistant."
+      "unknown": "Errore imprevisto. I dettagli sono nel registro di Home Assistant.",
+      "reconfigure_successful": "La voce è stata aggiornata e l'integrazione ricaricata."
     },
     "error": {
       "cannot_connect": "Impossibile determinare la regione di allerta SLF per queste coordinate.",
@@ -49,7 +66,7 @@
       }
     },
     "abort": {
-      "no_options": "Questa voce non ha opzioni — il bollettino segue la posizione configurata.",
+      "no_options": "Questa voce non ha opzioni: usa «Riconfigura» nel menu della voce per cambiarne posizione o etichetta.",
       "imis_unavailable": "Impossibile recuperare l'elenco delle stazioni IMIS. Riprova più tardi.",
       "unknown": "Errore imprevisto. I dettagli sono nel registro di Home Assistant."
     },

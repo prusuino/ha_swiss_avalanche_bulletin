@@ -24,12 +24,29 @@
         "data": {
           "imis_stations": "Stations"
         }
+      },
+      "reconfigure_bulletin": {
+        "title": "Change location or label",
+        "description": "Change the location or the label of this bulletin entry. The warning region is resolved again for the new coordinates. Entities keep their ids and history; the device name follows the label.",
+        "data": {
+          "name": "Label (optional, e.g. \"Home\" or \"Cabin\")",
+          "latitude": "Latitude",
+          "longitude": "Longitude"
+        }
+      },
+      "reconfigure_imis": {
+        "title": "Change stations",
+        "description": "Change the favourite IMIS measuring stations of this entry. The list is sorted by distance (❄ snow station, 🌬 wind station), type to search. Stations that stay selected keep their entities and history; the devices of removed stations are deleted.",
+        "data": {
+          "imis_stations": "Stations"
+        }
       }
     },
     "abort": {
       "already_configured": "This location is already configured.",
       "imis_unavailable": "The IMIS station list could not be fetched. Please try again later.",
-      "unknown": "Unexpected error. Details are in the Home Assistant log."
+      "unknown": "Unexpected error. Details are in the Home Assistant log.",
+      "reconfigure_successful": "The entry was updated and the integration reloaded."
     },
     "error": {
       "cannot_connect": "Could not determine the SLF warning region for these coordinates.",
@@ -49,7 +66,7 @@
       }
     },
     "abort": {
-      "no_options": "This entry has no options — the bulletin follows its configured location.",
+      "no_options": "This entry has no options: use Reconfigure in the entry's menu to change its location or label.",
       "imis_unavailable": "The IMIS station list could not be fetched. Please try again later.",
       "unknown": "Unexpected error. Details are in the Home Assistant log."
     },

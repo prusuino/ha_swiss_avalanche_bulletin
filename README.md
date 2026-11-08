@@ -180,6 +180,8 @@ The integration is listed in the Marketplace default catalog (formerly the HACS 
 4. Bulletin: latitude/longitude default to your Home Assistant home location — adjust if you want a different location (e.g. a specific mountain area), and optionally give it a label. Stations: pick any stations from the searchable list.
 5. Done. Add the integration again for additional locations or station sets.
 
+**Changing an entry later.** Open the entry's menu (⋮) under **Settings → Devices & Services → Swiss Avalanche Bulletin (SLF)** and choose **Reconfigure**: a bulletin entry takes a new location or label, an IMIS entry another set of stations (the **Configure** dialog of an IMIS entry does the same). Entities keep their ids and history; devices of removed stations are deleted.
+
 ## Data source & license
 
 This integration reads live data from the SLF's public bulletin API (`aws.slf.ch`) and the official SLF measurement API (`measurement-api.slf.ch`). That data is licensed under **[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)**, separate from this repository's MIT license — see [NOTICE.md](NOTICE.md) for the required attribution. Every sensor and the bundled card set the SLF attribution accordingly.

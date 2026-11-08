@@ -24,12 +24,29 @@
         "data": {
           "imis_stations": "Stations"
         }
+      },
+      "reconfigure_bulletin": {
+        "title": "Modifier l'emplacement ou le libellé",
+        "description": "Modifie l'emplacement ou le libellé de cette entrée de bulletin. La région d'alerte est déterminée à nouveau pour les nouvelles coordonnées. Les entités conservent leurs identifiants et leur historique ; le nom de l'appareil suit le libellé.",
+        "data": {
+          "name": "Libellé (optionnel, p.ex. « Domicile » ou « Chalet »)",
+          "latitude": "Latitude",
+          "longitude": "Longitude"
+        }
+      },
+      "reconfigure_imis": {
+        "title": "Changer de stations",
+        "description": "Modifie les stations de mesure IMIS favorites de cette entrée. La liste est triée par distance (❄ station de neige, 🌬 station de vent), tape pour chercher. Les stations qui restent sélectionnées conservent leurs entités et leur historique ; les appareils des stations retirées sont supprimés.",
+        "data": {
+          "imis_stations": "Stations"
+        }
       }
     },
     "abort": {
       "already_configured": "Cet emplacement est déjà configuré.",
       "imis_unavailable": "Impossible de récupérer la liste des stations IMIS. Veuillez réessayer plus tard.",
-      "unknown": "Erreur inattendue. Les détails se trouvent dans le journal de Home Assistant."
+      "unknown": "Erreur inattendue. Les détails se trouvent dans le journal de Home Assistant.",
+      "reconfigure_successful": "L'entrée a été mise à jour et l'intégration rechargée."
     },
     "error": {
       "cannot_connect": "Impossible de déterminer la région d'avertissement SLF pour ces coordonnées.",
@@ -49,7 +66,7 @@
       }
     },
     "abort": {
-      "no_options": "Cette entrée n'a pas d'options — le bulletin suit son emplacement configuré.",
+      "no_options": "Cette entrée n'a pas d'options : utilise « Reconfigurer » dans le menu de l'entrée pour changer son emplacement ou son libellé.",
       "imis_unavailable": "Impossible de récupérer la liste des stations IMIS. Veuillez réessayer plus tard.",
       "unknown": "Erreur inattendue. Les détails se trouvent dans le journal de Home Assistant."
     },

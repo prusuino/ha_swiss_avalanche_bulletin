@@ -24,12 +24,29 @@
         "data": {
           "imis_stations": "Stationen"
         }
+      },
+      "reconfigure_bulletin": {
+        "title": "Standort oder Bezeichnung ändern",
+        "description": "Ändert Standort oder Bezeichnung dieses Bulletin-Eintrags. Die Warnregion wird für die neuen Koordinaten neu bestimmt. Entitäten behalten ihre IDs und ihren Verlauf; der Gerätename folgt der Bezeichnung.",
+        "data": {
+          "name": "Bezeichnung (optional, z.B. \"Zuhause\" oder \"Ferienhaus\")",
+          "latitude": "Breitengrad",
+          "longitude": "Längengrad"
+        }
+      },
+      "reconfigure_imis": {
+        "title": "Stationen ändern",
+        "description": "Ändert die IMIS-Messstationen-Favoriten dieses Eintrags. Die Liste ist nach Distanz sortiert (❄ Schneestation, 🌬 Windstation), zum Suchen einfach tippen. Stationen, die ausgewählt bleiben, behalten ihre Entitäten und ihren Verlauf; die Geräte entfernter Stationen werden gelöscht.",
+        "data": {
+          "imis_stations": "Stationen"
+        }
       }
     },
     "abort": {
       "already_configured": "Dieser Standort ist bereits konfiguriert.",
       "imis_unavailable": "Die IMIS-Stationsliste konnte nicht geladen werden. Bitte später erneut versuchen.",
-      "unknown": "Unerwarteter Fehler. Details stehen im Home-Assistant-Protokoll."
+      "unknown": "Unerwarteter Fehler. Details stehen im Home-Assistant-Protokoll.",
+      "reconfigure_successful": "Der Eintrag wurde aktualisiert und die Integration neu geladen."
     },
     "error": {
       "cannot_connect": "Die SLF-Warnregion konnte für diese Koordinaten nicht ermittelt werden.",
@@ -49,7 +66,7 @@
       }
     },
     "abort": {
-      "no_options": "Dieser Eintrag hat keine Optionen — das Bulletin folgt seinem konfigurierten Standort.",
+      "no_options": "Dieser Eintrag hat keine Optionen: Standort oder Bezeichnung änderst du über „Neu konfigurieren“ im Menü des Eintrags.",
       "imis_unavailable": "Die IMIS-Stationsliste konnte nicht geladen werden. Bitte später erneut versuchen.",
       "unknown": "Unerwarteter Fehler. Details stehen im Home-Assistant-Protokoll."
     },
