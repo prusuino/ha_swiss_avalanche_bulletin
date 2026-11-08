@@ -219,13 +219,11 @@ class SlfAvalancheConfigFlow(ConfigFlow, domain=DOMAIN):
                 }
                 if entry is None:
                     return self.async_create_entry(title=title, data=data)
-                return self.async_update_reload_and_abort(
-                    entry,
-                    unique_id=unique_id,
-                    title=title,
-                    data=data,
-                    reason="reconfigure_successful",
+                # Update only: the entry's update listener reloads it.
+                self.hass.config_entries.async_update_entry(
+                    entry, unique_id=unique_id, title=title, data=data
                 )
+                return self.async_abort(reason="reconfigure_successful")
 
         defaults = {
             CONF_NAME: entry.data.get(CONF_NAME, "") if entry else "",
@@ -276,15 +274,14 @@ class SlfAvalancheConfigFlow(ConfigFlow, domain=DOMAIN):
                     return self.async_create_entry(title=_imis_title(stations), data=data)
                 # The new selection goes to the data; an older selection in
                 # the options would win over it, so it is dropped.
-                return self.async_update_reload_and_abort(
+                # Update only: the entry's update listener reloads it.
+                self.hass.config_entries.async_update_entry(
                     entry,
                     title=_imis_title(stations),
                     data=data,
-                    options={
-                        k: v for k, v in entry.options.items() if k != CONF_IMIS_STATIONS
-                    },
-                    reason="reconfigure_successful",
+                    options={k: v for k, v in entry.options.items() if k != CONF_IMIS_STATIONS},
                 )
+                return self.async_abort(reason="reconfigure_successful")
 
         stations = await self._async_station_list()
         if stations is None:
