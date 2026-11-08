@@ -135,5 +135,19 @@
         }
       }
     }
+  },
+  "issues": {
+    "unreachable": {
+      "title": "Swiss Avalanche Bulletin: SLF service unreachable",
+      "description": "The SLF service at {host} has not answered for several refreshes in a row. Check your internet connection; if it is fine, the service itself is down. The sensors stay unavailable until then and recover on their own; this notice disappears with the next successful refresh."
+    },
+    "region_unknown": {
+      "title": "Swiss Avalanche Bulletin: no warning region for this location",
+      "description": "The SLF knows no warning region for the coordinates of this entry: the location lies outside the area the bulletin covers, or the region boundaries have changed. The danger-level sensors stay unavailable. Move the location with Reconfigure in the entry's menu, or remove the entry; this notice disappears once a region is found."
+    },
+    "imis_station_unavailable": {
+      "title": "Swiss Avalanche Bulletin: IMIS station {station} not reachable",
+      "description": "The measurements of IMIS station {station} ({code}) could not be fetched for six hours. The station may be out of service or removed from the network. Its sensors stay unavailable. Replace it with Configure or Reconfigure in the entry's menu; this notice disappears when the station answers again."
+    }
   }
 }

@@ -227,6 +227,7 @@ This integration reads live data from the SLF's public bulletin API (`aws.slf.ch
 
 ## Notes
 
+- **Repairs.** When the SLF service has not answered for several refreshes in a row, when the SLF knows no warning region for a location, or when an IMIS station could not be fetched for six hours, a notice appears under **Settings → Repairs** that says what happened and what to do; it disappears on its own once the data is back.
 - Only relevant for locations in or near Switzerland — the SLF's ~150 warning regions cover the country and adjacent border areas.
 - This integration is unofficial and not affiliated with, endorsed by, or supported by the SLF. It only reads their published open data.
 - If the SLF API is unreachable or its format changes, entities become `unavailable` rather than reporting a stale or incorrect value. The sensors of a single IMIS station that cannot be fetched become `unavailable` on their own while the other stations keep updating.

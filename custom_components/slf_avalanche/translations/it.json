@@ -135,5 +135,19 @@
         }
       }
     }
+  },
+  "issues": {
+    "unreachable": {
+      "title": "Bollettino valanghe SLF: servizio SLF non raggiungibile",
+      "description": "Il servizio dell'SLF all'indirizzo {host} non ha risposto per diversi aggiornamenti consecutivi. Controlla la connessione internet; se funziona, è il servizio stesso a essere guasto. I sensori restano non disponibili fino ad allora e si ripristinano da soli; questo avviso scompare con il prossimo aggiornamento riuscito."
+    },
+    "region_unknown": {
+      "title": "Bollettino valanghe SLF: nessuna regione di allerta per questa località",
+      "description": "L'SLF non conosce alcuna regione di allerta per le coordinate di questa voce: la località è fuori dall'area coperta dal bollettino, oppure i confini delle regioni sono cambiati. I sensori del grado di pericolo restano non disponibili. Sposta la località con «Riconfigura» nel menu della voce, oppure rimuovi la voce; questo avviso scompare appena viene trovata una regione."
+    },
+    "imis_station_unavailable": {
+      "title": "Bollettino valanghe SLF: stazione IMIS {station} non raggiungibile",
+      "description": "Le misure della stazione IMIS {station} ({code}) non hanno potuto essere recuperate per sei ore. La stazione potrebbe essere fuori servizio o rimossa dalla rete. I suoi sensori restano non disponibili. Sostituiscila con «Configura» o «Riconfigura» nel menu della voce; questo avviso scompare appena la stazione risponde di nuovo."
+    }
   }
 }

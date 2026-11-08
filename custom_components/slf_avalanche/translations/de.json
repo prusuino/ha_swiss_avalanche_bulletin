@@ -135,5 +135,19 @@
         }
       }
     }
+  },
+  "issues": {
+    "unreachable": {
+      "title": "SLF Lawinenbulletin: SLF-Dienst nicht erreichbar",
+      "description": "Der SLF-Dienst unter {host} hat mehrere Aktualisierungen in Folge nicht beantwortet. Prüfe deine Internetverbindung; ist sie in Ordnung, ist der Dienst selbst gestört. Die Sensoren bleiben bis dahin nicht verfügbar und erholen sich von selbst; dieser Hinweis verschwindet mit der nächsten erfolgreichen Aktualisierung."
+    },
+    "region_unknown": {
+      "title": "SLF Lawinenbulletin: keine Warnregion für diesen Standort",
+      "description": "Das SLF kennt für die Koordinaten dieses Eintrags keine Warnregion: Der Standort liegt ausserhalb des Bulletin-Gebiets, oder die Regionsgrenzen haben sich geändert. Die Gefahrenstufen-Sensoren bleiben nicht verfügbar. Verschiebe den Standort über „Neu konfigurieren“ im Menü des Eintrags oder entferne den Eintrag; dieser Hinweis verschwindet, sobald eine Region gefunden wird."
+    },
+    "imis_station_unavailable": {
+      "title": "SLF Lawinenbulletin: IMIS-Station {station} nicht erreichbar",
+      "description": "Die Messwerte der IMIS-Station {station} ({code}) konnten sechs Stunden lang nicht abgerufen werden. Die Station ist möglicherweise ausser Betrieb oder aus dem Netz genommen. Ihre Sensoren bleiben nicht verfügbar. Ersetze sie über „Konfigurieren“ oder „Neu konfigurieren“ im Menü des Eintrags; dieser Hinweis verschwindet, sobald die Station wieder antwortet."
+    }
   }
 }

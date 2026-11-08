@@ -20,6 +20,7 @@ from .const import (
     STATIC_URL_BASE,
 )
 from .coordinator import ImisCoordinator, SlfAvalancheCoordinator
+from .issues import async_clear_entry_issues
 
 PLATFORMS = ["sensor"]
 
@@ -58,6 +59,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
             entry.data[CONF_LATITUDE],
             entry.data[CONF_LONGITUDE],
             entry.data.get(CONF_NAME) or entry.title,
+            entry.entry_id,
         )
         await bulletin.async_config_entry_first_refresh()
 
@@ -66,7 +68,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
         CONF_IMIS_STATIONS, entry.data.get(CONF_IMIS_STATIONS) or []
     )
     if mode == MODE_IMIS and stations:
-        imis = ImisCoordinator(hass, stations, entry.title)
+        imis = ImisCoordinator(hass, stations, entry.title, entry.entry_id)
         await imis.async_config_entry_first_refresh()
 
     _cleanup_stale_station_devices(hass, entry, stations)
@@ -102,5 +104,6 @@ def _cleanup_stale_station_devices(
 async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
     unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unloaded:
+        async_clear_entry_issues(hass, entry.entry_id)
         hass.data[DOMAIN].pop(entry.entry_id)
     return unloaded

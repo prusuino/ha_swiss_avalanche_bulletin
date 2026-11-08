@@ -135,5 +135,19 @@
         }
       }
     }
+  },
+  "issues": {
+    "unreachable": {
+      "title": "Bulletin d'avalanches SLF : service SLF injoignable",
+      "description": "Le service du SLF à l'adresse {host} n'a pas répondu lors de plusieurs actualisations consécutives. Vérifie ta connexion internet ; si elle fonctionne, le service lui-même est en panne. Les capteurs restent indisponibles jusque-là et se rétablissent d'eux-mêmes ; cet avis disparaît à la prochaine actualisation réussie."
+    },
+    "region_unknown": {
+      "title": "Bulletin d'avalanches SLF : aucune région d'alerte pour ce lieu",
+      "description": "Le SLF ne connaît aucune région d'alerte pour les coordonnées de cette entrée : le lieu est en dehors de la zone couverte par le bulletin, ou les limites des régions ont changé. Les capteurs du degré de danger restent indisponibles. Déplace le lieu via « Reconfigurer » dans le menu de l'entrée, ou supprime l'entrée ; cet avis disparaît dès qu'une région est trouvée."
+    },
+    "imis_station_unavailable": {
+      "title": "Bulletin d'avalanches SLF : station IMIS {station} injoignable",
+      "description": "Les mesures de la station IMIS {station} ({code}) n'ont pas pu être récupérées pendant six heures. La station est peut-être hors service ou retirée du réseau. Ses capteurs restent indisponibles. Remplace-la via « Configurer » ou « Reconfigurer » dans le menu de l'entrée ; cet avis disparaît dès que la station répond de nouveau."
+    }
   }
 }

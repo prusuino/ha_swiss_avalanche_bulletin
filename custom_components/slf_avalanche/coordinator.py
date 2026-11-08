@@ -20,6 +20,7 @@ from .const import (
     UPDATE_INTERVAL_MINUTES,
 )
 from .imis import async_fetch_daily_snow, async_fetch_station_measurements
+from .issues import IssueReporter
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -73,7 +74,12 @@ class SlfAvalancheCoordinator(DataUpdateCoordinator[dict]):
     """Fetches the sector assignment (once) and the bulletin (hourly)."""
 
     def __init__(
-        self, hass: HomeAssistant, latitude: float, longitude: float, name: str
+        self,
+        hass: HomeAssistant,
+        latitude: float,
+        longitude: float,
+        name: str,
+        entry_id: str | None = None,
     ) -> None:
         super().__init__(
             hass,
@@ -86,20 +92,33 @@ class SlfAvalancheCoordinator(DataUpdateCoordinator[dict]):
         self._latitude = latitude
         self._longitude = longitude
         self._sector: dict | None = None
+        self.issues = IssueReporter(hass, entry_id) if entry_id else None
 
     async def _async_update_data(self) -> dict:
         if self._sector is None:
             try:
                 self._sector = await async_resolve_sector(self.hass, self._latitude, self._longitude)
             except UpdateFailed:
+                # The service knows no warning region for the coordinates:
+                # that does not fix itself, say so under Repairs at once.
+                if self.issues:
+                    self.issues.raise_now("region_unknown")
                 raise
             except API_ERRORS as err:
+                if self.issues:
+                    self.issues.failure("unreachable", {"host": "aws.slf.ch"})
                 raise UpdateFailed(f"Could not determine the SLF warning region: {err}") from err
+            if self.issues:
+                self.issues.clear("region_unknown")
 
         try:
             bulletin = await async_fetch_bulletin(self.hass)
         except API_ERRORS as err:
+            if self.issues:
+                self.issues.failure("unreachable", {"host": "aws.slf.ch"})
             raise UpdateFailed(f"SLF bulletin unreachable: {err}") from err
+        if self.issues:
+            self.issues.clear("unreachable")
 
         region_id = f"CH-{self._sector['sector_id']}"
         feature = _find_feature_for_region(bulletin, region_id)
@@ -143,13 +162,16 @@ class ImisCoordinator(DataUpdateCoordinator[dict]):
     what its sensors use to report themselves unavailable.
     """
 
-    def __init__(self, hass: HomeAssistant, stations: list[dict], name: str) -> None:
+    def __init__(
+        self, hass: HomeAssistant, stations: list[dict], name: str, entry_id: str | None = None
+    ) -> None:
         super().__init__(
             hass,
             _LOGGER,
             name=f"{DOMAIN}_imis {name}",
             update_interval=timedelta(minutes=IMIS_UPDATE_INTERVAL_MINUTES),
         )
+        self.issues = IssueReporter(hass, entry_id) if entry_id else None
         # Station metadata dicts as stored in the config entry
         # (code, label, elevation, lat, lon, type, distance_km).
         self.stations = stations
@@ -167,10 +189,19 @@ class ImisCoordinator(DataUpdateCoordinator[dict]):
             else:
                 _LOGGER.warning("IMIS station %s unreachable: %s", code, err)
                 self._failed.add(code)
+            if self.issues:
+                # Six hours of failures (twelve half-hourly refreshes): the
+                # station is most likely out of service, say so under Repairs.
+                label = next((s.get("label") for s in self.stations if s["code"] == code), None) or code
+                self.issues.failure(
+                    "imis_station_unavailable", {"station": label, "code": code}, after=12, suffix=code
+                )
             return None
         if code in self._failed:
             self._failed.discard(code)
             _LOGGER.info("IMIS station %s reachable again", code)
+        if self.issues:
+            self.issues.clear("imis_station_unavailable", suffix=code)
         return data
 
     async def _async_update_data(self) -> dict:
@@ -198,5 +229,9 @@ class ImisCoordinator(DataUpdateCoordinator[dict]):
             result[code] = data
 
         if self.stations and not result:
+            if self.issues:
+                self.issues.failure("unreachable", {"host": "measurement-api.slf.ch"})
             raise UpdateFailed("No IMIS station reachable")
+        if self.issues:
+            self.issues.clear("unreachable")
         return result
