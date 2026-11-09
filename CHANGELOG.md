@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.1 — 2026-11-09
+
+- **Version on the service card.** The integration's version now appears on its service card under Settings → Devices & services, where the entities are listed.
+
 ## 1.6.0 — 2026-11-09
 
 - **Quality scale Bronze.** The integration keeps its coordinators in the config entry's runtime data, the README gained removal instructions and a quality-scale section, and the manifest declares the **bronze** tier. A test suite (bulletin region lookup, worst danger rating, station distances, IMIS measurement merge, config flow for bulletin and IMIS with duplicate, unreachable service, taken station and reconfigure) runs on every push. No change to entities or configuration.

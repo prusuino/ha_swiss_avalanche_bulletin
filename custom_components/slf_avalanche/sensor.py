@@ -28,7 +28,7 @@ from homeassistant.helpers.update_coordinator import CoordinatorEntity
 from homeassistant.util import slugify
 
 from . import RuntimeData
-from .const import CONF_NAME, DOMAIN, MAX_PROBLEM_SENSORS
+from .const import CONF_NAME, DOMAIN, MAX_PROBLEM_SENSORS, VERSION
 from .coordinator import ImisCoordinator, SlfAvalancheCoordinator
 from .device import device_info
 from .localization import danger_level_text, problem_type_text, t
@@ -286,6 +286,7 @@ class ImisMeasurementSensor(CoordinatorEntity[ImisCoordinator], SensorEntity):
         label = station.get("label") or code
         self._attr_device_info = DeviceInfo(
             identifiers={(DOMAIN, f"{entry.entry_id}_imis_{code}")},
+            sw_version=VERSION,
             name=t("imis_device_name", hass, name=f"{label} ({code})"),
             manufacturer=t("manufacturer", hass),
             model=t("imis_model", hass),

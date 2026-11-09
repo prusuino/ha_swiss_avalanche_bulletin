@@ -1,3 +1,5 @@
+import json
+from pathlib import Path
 """Constants for the Swiss Avalanche Bulletin (SLF) integration."""
 DOMAIN = "slf_avalanche"
 
@@ -34,3 +36,7 @@ DANGER_LEVEL_NUMBERS: dict[str, int] = {
 }
 
 MAX_PROBLEM_SENSORS = 3
+
+# The integration's own version, shown on the service card. Read from the
+# manifest so that a release never needs to touch two places.
+VERSION: str = json.loads((Path(__file__).parent / "manifest.json").read_text(encoding="utf-8"))["version"]

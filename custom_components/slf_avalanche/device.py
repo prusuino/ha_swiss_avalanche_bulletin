@@ -6,7 +6,7 @@ from homeassistant.core import HomeAssistant
 from homeassistant.helpers.device_registry import DeviceEntryType
 from homeassistant.helpers.device_registry import DeviceInfo
 
-from .const import CONF_NAME, DOMAIN
+from .const import CONF_NAME, DOMAIN, VERSION
 from .localization import t
 
 
@@ -14,6 +14,7 @@ def device_info(hass: HomeAssistant, entry: ConfigEntry) -> DeviceInfo:
     name = entry.data.get(CONF_NAME) or entry.title
     return DeviceInfo(
         identifiers={(DOMAIN, entry.entry_id)},
+        sw_version=VERSION,
         name=t("device_name", hass, name=name),
         manufacturer=t("manufacturer", hass),
         model=t("model", hass),
