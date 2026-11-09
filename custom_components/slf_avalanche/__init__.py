@@ -37,7 +37,10 @@ class RuntimeData:
         self.imis = imis
 
 
-async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+type SlfAvalancheConfigEntry = ConfigEntry[RuntimeData]
+
+
+async def async_setup_entry(hass: HomeAssistant, entry: SlfAvalancheConfigEntry) -> bool:
     if not hass.data.get(f"{DOMAIN}_static_registered"):
         await hass.http.async_register_static_paths(
             [
@@ -73,7 +76,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
 
     _cleanup_stale_station_devices(hass, entry, stations)
 
-    hass.data.setdefault(DOMAIN, {})[entry.entry_id] = RuntimeData(bulletin, imis)
+    entry.runtime_data = RuntimeData(bulletin, imis)
     await hass.config_entries.async_forward_entry_setups(entry, PLATFORMS)
 
     async def _options_updated(hass: HomeAssistant, entry: ConfigEntry) -> None:
@@ -101,9 +104,8 @@ def _cleanup_stale_station_devices(
                 break
 
 
-async def async_unload_entry(hass: HomeAssistant, entry: ConfigEntry) -> bool:
+async def async_unload_entry(hass: HomeAssistant, entry: SlfAvalancheConfigEntry) -> bool:
     unloaded = await hass.config_entries.async_unload_platforms(entry, PLATFORMS)
     if unloaded:
         async_clear_entry_issues(hass, entry.entry_id)
-        hass.data[DOMAIN].pop(entry.entry_id)
     return unloaded

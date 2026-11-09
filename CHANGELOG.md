@@ -1,5 +1,9 @@
 # Changelog
 
+## 1.6.0 — 2026-11-09
+
+- **Quality scale Bronze.** The integration keeps its coordinators in the config entry's runtime data, the README gained removal instructions and a quality-scale section, and the manifest declares the **bronze** tier. A test suite (bulletin region lookup, worst danger rating, station distances, IMIS measurement merge, config flow for bulletin and IMIS with duplicate, unreachable service, taken station and reconfigure) runs on every push. No change to entities or configuration.
+
 ## 1.5.0 — 2026-11-08
 
 - **New: repair notices.** A notice under **Settings → Repairs** when the SLF service has not answered for three refreshes in a row, when the SLF knows no warning region for a bulletin location (with a pointer to *Reconfigure*), and when an IMIS station could not be fetched for six hours. Each clears itself when the data is back. In all four languages.

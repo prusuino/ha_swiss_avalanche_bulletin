@@ -51,7 +51,7 @@ IMIS_SENSOR_TYPES: dict[str, tuple] = {
 async def async_setup_entry(
     hass: HomeAssistant, entry: ConfigEntry, async_add_entities: AddEntitiesCallback
 ) -> None:
-    data: RuntimeData = hass.data[DOMAIN][entry.entry_id]
+    data: RuntimeData = entry.runtime_data
 
     if data.bulletin is not None:
         coordinator = data.bulletin

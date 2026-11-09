@@ -225,6 +225,16 @@ The integration is listed in the Marketplace default catalog (formerly the HACS 
 
 This integration reads live data from the SLF's public bulletin API (`aws.slf.ch`) and the official SLF measurement API (`measurement-api.slf.ch`). That data is licensed under **[CC BY 4.0](https://creativecommons.org/licenses/by/4.0/)**, separate from this repository's MIT license — see [NOTICE.md](NOTICE.md) for the required attribution. Every sensor and the bundled card set the SLF attribution accordingly.
 
+## Removal
+
+1. **Settings → Devices & services → Swiss Avalanche Bulletin (SLF)**, open the entry's menu (⋮) and choose **Delete**; repeat for every location and station set. The entities, their history and the devices go with the entry.
+2. If you registered the bundled card as a dashboard resource, remove it under **Settings → Dashboards → Resources** and delete the dashboard built with it.
+3. Remove the integration itself in the **Marketplace** (or HACS), then restart Home Assistant. With a manual installation, delete `custom_components/slf_avalanche` instead.
+
+## Quality scale
+
+The integration declares **Bronze** on the [Home Assistant integration quality scale](https://developers.home-assistant.io/docs/core/integration-quality-scale/): a config flow with tests, unique ids for every entity, brand images, installation and removal instructions, a connection check before an entry is created, no duplicate entries, runtime data on the config entry, and the other Bronze rules. The tier is self-assessed, as it is for every custom integration; the per-rule status, including what is still open for Silver and Gold, is in `custom_components/slf_avalanche/quality_scale.yaml`.
+
 ## Notes
 
 - **Repairs.** When the SLF service has not answered for several refreshes in a row, when the SLF knows no warning region for a location, or when an IMIS station could not be fetched for six hours, a notice appears under **Settings → Repairs** that says what happened and what to do; it disappears on its own once the data is back.
