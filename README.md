@@ -53,6 +53,8 @@ A value is only reported as current if it was measured within the last 3 hours; 
 
 The integration ships a Lovelace card, **SLF IMIS Station** (`custom:slf-imis-station-card`), with a visual editor — snow depth as the hero value, temperatures, wind with direction arrow, measurement age and the required SLF attribution — and, in the same file, a **dashboard strategy** that assembles a complete avalanche dashboard from your config entries at display time.
 
+![IMIS station cards for four stations around Zermatt with snow depth, temperatures, humidity and wind, and the avalanche bulletin tiles below](docs/dashboard.png)
+
 The card file is served by the integration, but you register it as a Lovelace resource yourself — the integration does not write to your dashboard configuration. It is a one-time step.
 
 ### Adding the card as a resource (once)
