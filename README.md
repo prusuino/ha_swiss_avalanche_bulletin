@@ -8,6 +8,16 @@
 
 A Home Assistant custom integration for the official Swiss **avalanche bulletin**, published by the **WSL Institute for Snow and Avalanche Research (SLF)** — and, independently of it, for the **IMIS measuring stations** of the SLF: snow depth, new snow, temperatures and wind from ~200 automatic high-alpine stations.
 
+## Highlights
+
+- **The danger level for your spot**: your coordinates are resolved to one of about 150 SLF warning regions; the sensors give the danger level 1–5, the region and up to three avalanche problems, refreshed every hour.
+- **Several locations**: home, a cabin, the area of the next tour — each is its own entry.
+- **IMIS measuring stations**: about 200 stations in the Alps and the Jura with snow depth, new snow in 24 hours, air and snow-surface temperature, humidity and wind, every 30 minutes from the official measurement API.
+- **A station card and a dashboard**: the bundled "SLF IMIS Station" card with a visual editor, and a dashboard strategy that lays out your locations and stations by itself.
+- **Built for the automation editor**: triggers (danger level reached, danger level changed), conditions (danger level at least / below) and a notification blueprint — no templates needed.
+- **No value rather than a stale one**: outside the season the bulletin sensors report nothing, and a station value counts as current only within 3 hours.
+- **Set up in a minute**: starts from your Home Assistant location, stations are picked from a list sorted by distance; German, English, French and Italian; diagnostics download with your coordinates redacted.
+
 ## Background
 
 The SLF publishes a nationwide avalanche bulletin covering ~150 warning regions across Switzerland, with a public, unauthenticated API (`aws.slf.ch`). This integration:
