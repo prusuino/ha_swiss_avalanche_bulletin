@@ -4,6 +4,8 @@
 [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](LICENSE)
 <a href="https://www.buymeacoffee.com/prusuino"><img src="https://cdn.buymeacoffee.com/buttons/v2/default-yellow.png" alt="Buy Me a Coffee" height="20"></a>
 
+![Swiss Avalanche Bulletin](readme_header.png)
+
 A Home Assistant custom integration for the official Swiss **avalanche bulletin**, published by the **WSL Institute for Snow and Avalanche Research (SLF)** — and, independently of it, for the **IMIS measuring stations** of the SLF: snow depth, new snow, temperatures and wind from ~200 automatic high-alpine stations.
 
 ## Background
@@ -24,10 +26,10 @@ Per configured location:
 | Entity | Description |
 |---|---|
 | `sensor.slf_avalanche_danger_level_<label>` | Current avalanche danger level as a **number (1–5)**, so it can be used directly in automations/thresholds. Attributes: text label (e.g. "Considerable"), whether a bulletin is currently active, validity period, next update time, publication time, the raw danger-rating data (bulletins can split the rating by elevation) |
-| `sensor.slf_avalanche_region_<label>` | The SLF warning region name resolved for your coordinates (e.g. "Olten-Gösgen") — lets you confirm the location match is correct |
+| `sensor.slf_avalanche_region_<label>` | The SLF warning region name resolved for your coordinates (e.g. "Davos") — lets you confirm the location match is correct |
 | `sensor.slf_avalanche_problem_1/2/3_<label>` | Up to 3 currently reported avalanche problems (e.g. wind-drifted snow, persistent weak layers, wet snow). Each includes elevation range, affected aspects (compass directions), and the SLF's full plain-text explanation. Entities report no value on days with fewer than 3 reported problems |
 
-`<label>` is the label you gave the location when adding it — or, if you left it empty, the name of the resolved SLF warning region — slugified, followed by the last four characters of the config entry id so that two locations with the same label never collide: a location labelled "Home" gets something like `sensor.slf_avalanche_danger_level_home_ab12`, an unlabelled one in the Olten-Gösgen region `sensor.slf_avalanche_danger_level_olten_gosgen_ab12`. The integration suggests these object ids itself when an entity is first created, so they do not depend on your Home Assistant language — only the displayed names are localized. Entities created by versions before 1.3.0 keep their ids without the four-character part. Like any entity, they can be renamed in the entity settings afterwards.
+`<label>` is the label you gave the location when adding it — or, if you left it empty, the name of the resolved SLF warning region — slugified, followed by the last four characters of the config entry id so that two locations with the same label never collide: a location labelled "Home" gets something like `sensor.slf_avalanche_danger_level_home_ab12`, an unlabelled one in the Davos region `sensor.slf_avalanche_danger_level_davos_ab12`. The integration suggests these object ids itself when an entity is first created, so they do not depend on your Home Assistant language — only the displayed names are localized. Entities created by versions before 1.3.0 keep their ids without the four-character part. Like any entity, they can be renamed in the entity settings afterwards.
 
 Data is refreshed every hour. The bulletin itself is typically published once daily (around 17:00), with interim updates during high-danger situations.
 
