@@ -1,5 +1,6 @@
 {
   "name": "Swiss Avalanche Bulletin (SLF)",
+  "country": "CH",
   "zip_release": true,
   "filename": "slf_avalanche.zip",
   "render_readme": true,
