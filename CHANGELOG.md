@@ -1,9 +1,10 @@
 # Changelog
 
-## Unreleased
+## 1.7.1 — 2026-11-23
 
 - The bulletin card no longer repeats the name when a location is called like its warning region ("Zermatt · Zermatt").
 - README: a screenshot of the danger map and the bulletin card, and a new one of the station cards.
+- The card file changed: raise the `?v=` of the card resource to `1.7.1` (or reload the page with Ctrl+F5 / Cmd+Shift+R) if the card still shows the old state.
 
 ## 1.7.0 — 2026-11-23
 
