@@ -88,7 +88,7 @@ The two bulletin cards follow the Home Assistant language and read the bulletin 
 
 ![The danger map of Switzerland coloured by danger level with three locations outlined, next to the bulletin card for Zermatt showing level 3=, the core zone, tomorrow's level, two avalanche problems with aspect roses, new snow and the snowfall limit](docs/bulletin.png)
 
-![IMIS station cards for four stations around Zermatt with snow depth, temperatures, humidity and wind, and the tiles of earlier versions below](docs/dashboard.png)
+![IMIS station cards for four stations around Zermatt with snow depth, new snow, temperatures, humidity and wind, next to a graph of the snow height over the last seven days](docs/dashboard.png)
 
 The card file is served by the integration, but you register it as a Lovelace resource yourself — the integration does not write to your dashboard configuration. It is a one-time step.
 
