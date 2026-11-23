@@ -72,33 +72,74 @@ else:
         except (TypeError, ValueError):
             return None
 
-    class _DangerLevelChanged(EntityTriggerBase):
-        """The danger level of a bulletin entry changes to another level."""
+    class _LevelTrigger(EntityTriggerBase):
+        """Base of the two triggers: remembers the last level of each sensor.
+
+        The core skips every change out of "unknown" or "unavailable". For
+        this sensor that is exactly when it matters: it has no value outside
+        the season and while the SLF cannot be reached, so the first bulletin
+        of the winter, or a level that rose during an outage, would never
+        fire. Such a change is therefore let through and judged against the
+        last level seen before the gap. The core asks is_valid_state for
+        every reading with a value and only then is_valid_transition, so the
+        levels are remembered there.
+        """
 
         _domain_specs = DANGER_SPECS
+        _excluded_from_states = frozenset()
+
+        def __init__(self, hass: HomeAssistant, config) -> None:
+            super().__init__(hass, config)
+            self._last_level: dict[str, int] = {}
+            self._previous_level: dict[str, int | None] = {}
 
         def entity_filter(self, entities: set[str]) -> set[str]:
             return _own_danger_entities(self._hass, super().entity_filter(entities))
 
-    class _DangerLevelReached(EntityTriggerBase):
+        def _remember(self, state: State, level: int) -> None:
+            self._previous_level[state.entity_id] = self._last_level.get(state.entity_id)
+            self._last_level[state.entity_id] = level
+
+        def _before(self, from_state: State, to_state: State) -> int | None:
+            """The level before this change; across a gap the last one seen."""
+            before = _level(from_state)
+            return before if before is not None else self._previous_level.get(to_state.entity_id)
+
+    class _DangerLevelChanged(_LevelTrigger):
+        """The danger level of a bulletin entry changes to another level.
+
+        Also fires for the first level after a time without one (the first
+        bulletin of the season); a level that returns unchanged after a gap
+        does not fire."""
+
+        def is_valid_transition(self, from_state: State, to_state: State) -> bool:
+            after = _level(to_state)
+            return after is not None and self._before(from_state, to_state) != after
+
+        def is_valid_state(self, state: State, report_not_triggered) -> bool:
+            level = _level(state)
+            if level is None:
+                report_not_triggered("level_not_numeric", entity_id=state.entity_id)
+                return False
+            self._remember(state, level)
+            return True
+
+    class _DangerLevelReached(_LevelTrigger):
         """The danger level rises to the minimum level or above.
 
-        Fires when the level goes from below the minimum (or from no value)
-        to the minimum or higher; a change between two levels above the
-        minimum does not fire again."""
+        Fires when the level goes from below the minimum, or from no level
+        at all, to the minimum or higher; a change between two levels above
+        the minimum does not fire again, and neither does a level that was
+        already there before a gap."""
 
-        _domain_specs = DANGER_SPECS
         _schema = LEVEL_SCHEMA
 
         def __init__(self, hass: HomeAssistant, config) -> None:
             super().__init__(hass, config)
             self._minimum = int(self._options.get(CONF_MINIMUM_LEVEL) or DEFAULT_MINIMUM_LEVEL)
 
-        def entity_filter(self, entities: set[str]) -> set[str]:
-            return _own_danger_entities(self._hass, super().entity_filter(entities))
-
         def is_valid_transition(self, from_state: State, to_state: State) -> bool:
-            before = _level(from_state)
+            before = self._before(from_state, to_state)
             after = _level(to_state)
             return after is not None and after >= self._minimum and (before is None or before < self._minimum)
 
@@ -107,6 +148,7 @@ else:
             if level is None:
                 report_not_triggered("level_not_numeric", entity_id=state.entity_id)
                 return False
+            self._remember(state, level)
             return level >= self._minimum
 
     TRIGGERS: dict[str, type[Trigger]] = {

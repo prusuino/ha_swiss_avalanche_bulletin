@@ -1,5 +1,10 @@
 # Changelog
 
+## 1.7.2 — 2026-11-23
+
+- **Fixed: the triggers stayed silent after a time without a level.** Home Assistant ignores every change out of "unknown" or "unavailable", and the danger-level sensor has no value outside the season and while the SLF cannot be reached. So *Avalanche danger level reached* never fired for the first bulletin of the winter, nor for a level that rose during an outage, and *Avalanche danger level changed* missed the same. Both triggers now compare with the last level seen before the gap: the first level of the season and a rise during an outage fire, a level that only returns unchanged does not.
+- Tests for the triggers and conditions with real automations (46 tests).
+
 ## 1.7.1 — 2026-11-23
 
 - The bulletin card no longer repeats the name when a location is called like its warning region ("Zermatt · Zermatt").

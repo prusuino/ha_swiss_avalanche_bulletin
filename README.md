@@ -207,8 +207,8 @@ On Home Assistant 2026.10 or newer the integration adds its own entries to the a
 
 | Trigger | Fires when |
 |---|---|
-| **Avalanche danger level reached** | the danger level of a location rises to the **minimum level** (1–5, default 3) or above — once, not on every change above it |
-| **Avalanche danger level changed** | the danger level of a location changes to another level, up or down |
+| **Avalanche danger level reached** | the danger level of a location rises to the **minimum level** (1–5, default 3) or above — once, not on every change above it. The first bulletin of the season counts (from no level to the level), and so does a level that rose while the SLF could not be reached; a level that simply returns after such a gap does not fire again |
+| **Avalanche danger level changed** | the danger level of a location changes to another level, up or down — also the first level after a time without one; a level that returns unchanged after a gap does not fire |
 
 | Condition | Passes while |
 |---|---|
