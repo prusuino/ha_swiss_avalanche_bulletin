@@ -21,6 +21,7 @@ from .const import (
 )
 from .coordinator import ImisCoordinator, SlfAvalancheCoordinator
 from .issues import async_clear_entry_issues
+from .view import async_register_view
 
 PLATFORMS = ["sensor"]
 
@@ -52,6 +53,7 @@ async def async_setup_entry(hass: HomeAssistant, entry: SlfAvalancheConfigEntry)
             ]
         )
         hass.data[f"{DOMAIN}_static_registered"] = True
+    async_register_view(hass)
 
     mode = entry.data.get(CONF_MODE, MODE_BULLETIN)
 

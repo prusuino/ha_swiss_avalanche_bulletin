@@ -2,7 +2,9 @@
  * integration and served under /slf_avalanche/static/. Register it once
  * as a Lovelace resource (JavaScript module); see the README.
  *
- *   slf-imis-station-card   snow, temperature and wind of one IMIS station
+ *   slf-imis-station-card         snow, temperature and wind of one IMIS station
+ *   slf-avalanche-bulletin-card   the bulletin of one location (since 1.7.0)
+ *   slf-avalanche-map-card        the danger map of Switzerland (since 1.7.0)
  *
  * The card provides a visual editor (getConfigElement) and follows the
  * Home Assistant frontend language (de/en/fr/it).
@@ -246,6 +248,374 @@ window.customCards.push({
   name: 'SLF IMIS Station',
   description: 'Snow depth, temperatures and wind of an SLF IMIS measuring station',
 });
+
+/* =====================================================================
+ * Bulletin cards: the danger map of Switzerland and the bulletin of one
+ * location. Both read GET /api/slf_avalanche/bulletin (authenticated),
+ * which the integration builds from its shared bulletin download.
+ *
+ *   slf-avalanche-map-card        all warning regions in the colours of
+ *                                 the European danger scale
+ *   slf-avalanche-bulletin-card   level with subdivision, core zone,
+ *                                 trend, avalanche problems with aspect
+ *                                 rose and elevation, new snow
+ * ===================================================================== */
+
+const SLF_BULLETIN_L10N = {
+  de: {
+    map: 'Lawinengefahr Schweiz', no_bulletin: 'Zurzeit kein Lawinenbulletin (ausserhalb der Saison).',
+    no_rating: 'Für diese Region gibt es zurzeit keine Gefahrenstufe.', unrated: 'keine Einstufung',
+    tomorrow: 'Morgen', valid_to: 'Gültig bis', above: 'über', below: 'unter', all_elevations: 'alle Höhenlagen',
+    treeline: 'Waldgrenze', new_snow_24h: 'Neuschnee 24 h', new_snow_next: 'Neuschnee Prognose',
+    snowfall_limit: 'Schneefallgrenze', below_region: 'unterhalb der Region', snowpack: 'Schneedecke',
+    tendency: 'Tendenz', weather: 'Wetter', problems: 'Lawinenprobleme', error: 'Bulletin nicht erreichbar.',
+    no_location: 'Kein Bulletin-Ort eingerichtet.', tap: 'Region antippen für Details',
+    trend: { increasing: 'zunehmend', steady: 'gleichbleibend', decreasing: 'abnehmend' },
+  },
+  en: {
+    map: 'Avalanche danger Switzerland', no_bulletin: 'No avalanche bulletin at the moment (out of season).',
+    no_rating: 'There is no danger level for this region at the moment.', unrated: 'no rating',
+    tomorrow: 'Tomorrow', valid_to: 'Valid until', above: 'above', below: 'below', all_elevations: 'all elevations',
+    treeline: 'treeline', new_snow_24h: 'New snow 24 h', new_snow_next: 'New snow forecast',
+    snowfall_limit: 'Snowfall limit', below_region: 'below the region', snowpack: 'Snowpack',
+    tendency: 'Tendency', weather: 'Weather', problems: 'Avalanche problems', error: 'Bulletin unavailable.',
+    no_location: 'No bulletin location set up.', tap: 'Tap a region for details',
+    trend: { increasing: 'increasing', steady: 'steady', decreasing: 'decreasing' },
+  },
+  fr: {
+    map: "Danger d'avalanche Suisse", no_bulletin: "Pas de bulletin d'avalanches actuellement (hors saison).",
+    no_rating: "Il n'y a actuellement pas de degré de danger pour cette région.", unrated: 'sans évaluation',
+    tomorrow: 'Demain', valid_to: "Valable jusqu'au", above: 'au-dessus de', below: 'en dessous de', all_elevations: 'toutes les altitudes',
+    treeline: 'limite des forêts', new_snow_24h: 'Neige fraîche 24 h', new_snow_next: 'Neige fraîche prévue',
+    snowfall_limit: 'Limite des chutes de neige', below_region: 'sous la région', snowpack: 'Manteau neigeux',
+    tendency: 'Tendance', weather: 'Météo', problems: "Problèmes d'avalanche", error: 'Bulletin indisponible.',
+    no_location: 'Aucun lieu de bulletin configuré.', tap: 'Touchez une région pour les détails',
+    trend: { increasing: 'en hausse', steady: 'stable', decreasing: 'en baisse' },
+  },
+  it: {
+    map: 'Pericolo valanghe Svizzera', no_bulletin: 'Al momento nessun bollettino valanghe (fuori stagione).',
+    no_rating: 'Al momento non c’è un grado di pericolo per questa regione.', unrated: 'nessuna valutazione',
+    tomorrow: 'Domani', valid_to: 'Valido fino al', above: 'sopra', below: 'sotto', all_elevations: 'tutte le quote',
+    treeline: 'limite del bosco', new_snow_24h: 'Neve fresca 24 h', new_snow_next: 'Neve fresca prevista',
+    snowfall_limit: 'Limite delle nevicate', below_region: 'sotto la regione', snowpack: 'Manto nevoso',
+    tendency: 'Tendenza', weather: 'Meteo', problems: 'Problemi valanghivi', error: 'Bollettino non disponibile.',
+    no_location: 'Nessun luogo del bollettino configurato.', tap: 'Tocca una regione per i dettagli',
+    trend: { increasing: 'in aumento', steady: 'stabile', decreasing: 'in diminuzione' },
+  },
+};
+
+const SLF_ATTRIBUTION = {
+  de: 'Daten: WSL-Institut für Schnee- und Lawinenforschung SLF',
+  en: 'Data: WSL Institute for Snow and Avalanche Research SLF',
+  fr: "Données : Institut pour l'étude de la neige et des avalanches SLF",
+  it: 'Dati: Istituto per lo studio della neve e delle valanghe SLF',
+};
+
+// Colours of the European avalanche danger scale (EAWS), levels 1 to 5.
+const SLF_LEVEL_COLOURS = { 1: '#ccff66', 2: '#ffff00', 3: '#ff9900', 4: '#ff0000', 5: '#a50000' };
+
+const SLF_PROBLEM_ICONS = {
+  new_snow: 'mdi:weather-snowy-heavy',
+  wind_slab: 'mdi:weather-windy',
+  persistent_weak_layers: 'mdi:layers-triple-outline',
+  wet_snow: 'mdi:water-outline',
+  gliding_snow: 'mdi:landslide-outline',
+  cornices: 'mdi:terrain',
+  favourable_situation: 'mdi:check-circle-outline',
+  no_distinct_problem: 'mdi:help-circle-outline',
+};
+
+const SLF_TREND_ICONS = { increasing: 'mdi:trending-up', steady: 'mdi:trending-neutral', decreasing: 'mdi:trending-down' };
+
+function slfBulletinLangCode(hass) {
+  const lang = ((hass && hass.language) || 'en').split('-')[0];
+  return SLF_BULLETIN_L10N[lang] ? lang : 'en';
+}
+
+/* One request per language for all cards on the page. It is repeated when
+ * a danger-level sensor of the integration has changed (a new bulletin)
+ * and at the latest after 30 minutes. */
+const SLF_BULLETIN_CACHE = {};
+
+function slfBulletinStamp(hass) {
+  let stamp = '';
+  for (const [id, st] of Object.entries(hass.states)) {
+    if (id.startsWith('sensor.slf_avalanche_danger_level_') && st.attributes && 'danger_level_detail' in st.attributes) {
+      stamp += `${id}:${st.last_updated};`;
+    }
+  }
+  return stamp;
+}
+
+function slfBulletinFetch(hass) {
+  const lang = slfBulletinLangCode(hass);
+  const stamp = slfBulletinStamp(hass);
+  const cached = SLF_BULLETIN_CACHE[lang];
+  if (cached && cached.stamp === stamp && Date.now() - cached.time < 30 * 60 * 1000) return cached.promise;
+  const promise = hass.callApi('GET', `slf_avalanche/bulletin?lang=${lang}`);
+  SLF_BULLETIN_CACHE[lang] = { stamp, time: Date.now(), promise };
+  promise.catch(() => { delete SLF_BULLETIN_CACHE[lang]; });
+  return promise;
+}
+
+const SLF_BULLETIN_STYLE = `
+  ha-card { padding: 16px; }
+  .head { display: flex; align-items: center; gap: 12px; }
+  .badge { min-width: 56px; height: 56px; border-radius: 12px; display: flex; align-items: center;
+    justify-content: center; font-size: 26px; font-weight: 700; color: #000; flex: none; }
+  .badge.small { min-width: 34px; height: 34px; font-size: 16px; border-radius: 8px; }
+  .badge.none { background: var(--disabled-color, #bbb); }
+  .title { font-size: 18px; font-weight: 500; }
+  .sub { color: var(--secondary-text-color); font-size: 14px; }
+  .core { margin: 12px 0 4px; font-size: 14px; }
+  .row { display: flex; align-items: center; gap: 8px; margin-top: 8px; font-size: 14px; flex-wrap: wrap; }
+  .problems { margin-top: 12px; display: grid; gap: 10px; }
+  .problem { display: grid; grid-template-columns: auto 1fr auto; gap: 10px; align-items: center; }
+  .problem ha-icon { --mdc-icon-size: 30px; color: var(--primary-text-color); }
+  .pname { font-weight: 500; font-size: 14px; }
+  .pelev { color: var(--secondary-text-color); font-size: 13px; }
+  .weather { display: grid; grid-template-columns: repeat(auto-fit, minmax(110px, 1fr)); gap: 8px; margin-top: 12px; }
+  .cell { background: var(--secondary-background-color); border-radius: 8px; padding: 6px 8px; }
+  .cell .v { font-size: 16px; font-weight: 500; }
+  .cell .l { font-size: 12px; color: var(--secondary-text-color); }
+  details { margin-top: 10px; font-size: 13px; }
+  details summary { cursor: pointer; color: var(--primary-color); }
+  details p { white-space: pre-line; margin: 6px 0 0; }
+  .attr { margin-top: 12px; font-size: 11px; color: var(--secondary-text-color); }
+  .msg { color: var(--secondary-text-color); font-size: 14px; }
+  svg.map { width: 100%; height: auto; display: block; margin-top: 8px; }
+  svg.map path { stroke: var(--card-background-color, #fff); stroke-width: 0.6; vector-effect: non-scaling-stroke; cursor: pointer; }
+  svg.map path.mine { stroke: var(--primary-text-color); stroke-width: 2; }
+  svg.map path.sel { stroke: var(--primary-color); stroke-width: 2.5; }
+  .legend { display: flex; gap: 6px; flex-wrap: wrap; margin-top: 8px; font-size: 12px; align-items: center; }
+  .legend span.sw { display: inline-block; width: 14px; height: 14px; border-radius: 3px; vertical-align: middle; margin-right: 3px; }
+`;
+
+function slfBadge(level, detail, small) {
+  const colour = SLF_LEVEL_COLOURS[level];
+  const text = slfImisEsc((detail || (level != null ? String(level) : '–')).replace('-', '−'));
+  const fg = level === 5 ? '#fff' : '#000';
+  return colour
+    ? `<div class="badge${small ? ' small' : ''}" style="background:${colour};color:${fg}">${text}</div>`
+    : `<div class="badge none${small ? ' small' : ''}">–</div>`;
+}
+
+/* The aspect rose: eight sectors, the ones the problem concerns filled. */
+function slfAspectRose(aspects, level) {
+  const order = ['N', 'NE', 'E', 'SE', 'S', 'SW', 'W', 'NW'];
+  const on = new Set((aspects || []).map((a) => String(a).toUpperCase()));
+  const fill = SLF_LEVEL_COLOURS[level] || 'var(--primary-color)';
+  let paths = '';
+  order.forEach((name, i) => {
+    const a0 = ((i * 45 - 22.5 - 90) * Math.PI) / 180;
+    const a1 = ((i * 45 + 22.5 - 90) * Math.PI) / 180;
+    const p = (a, r) => `${(20 + r * Math.cos(a)).toFixed(2)},${(20 + r * Math.sin(a)).toFixed(2)}`;
+    paths += `<path d="M20,20 L${p(a0, 17)} A17,17 0 0,1 ${p(a1, 17)} Z" fill="${on.has(name) ? fill : 'none'}"
+      stroke="var(--secondary-text-color)" stroke-width="0.8"/>`;
+  });
+  return `<svg width="44" height="44" viewBox="0 0 40 40" role="img" aria-label="${slfImisEsc([...on].join(' '))}">${paths}
+    <text x="20" y="6.5" text-anchor="middle" font-size="5" fill="var(--primary-text-color)">N</text></svg>`;
+}
+
+function slfElevation(elevation, s) {
+  const fmt = (v) => (v === 'treeline' ? s.treeline : `${slfImisEsc(v)} m`);
+  const lo = elevation && elevation.lowerBound;
+  const hi = elevation && elevation.upperBound;
+  if (lo && hi) return `${fmt(lo)} – ${fmt(hi)}`;
+  if (lo) return `${s.above} ${fmt(lo)}`;
+  if (hi) return `${s.below} ${fmt(hi)}`;
+  return s.all_elevations;
+}
+
+function slfDateTime(iso, lang) {
+  if (!iso) return '';
+  const d = new Date(iso);
+  if (Number.isNaN(d.getTime())) return '';
+  return d.toLocaleString(lang, { weekday: 'short', day: 'numeric', month: 'numeric', hour: '2-digit', minute: '2-digit' });
+}
+
+class SlfAvalancheBulletinCard extends HTMLElement {
+  static getStubConfig() { return {}; }
+
+  static getConfigForm() {
+    return {
+      schema: [{ name: 'entity', selector: { entity: { domain: 'sensor', integration: 'slf_avalanche' } } }],
+    };
+  }
+
+  setConfig(config) {
+    this._config = config || {};
+    if (!this.shadowRoot) this.attachShadow({ mode: 'open' });
+  }
+
+  getCardSize() { return 6; }
+
+  getGridOptions() { return { columns: 12, min_columns: 6 }; }
+
+  set hass(hass) {
+    this._hass = hass;
+    const lang = slfBulletinLangCode(hass);
+    slfBulletinFetch(hass).then(
+      (data) => this._render(data, lang),
+      () => this._message(SLF_BULLETIN_L10N[lang].error, lang)
+    );
+  }
+
+  _entryId() {
+    const id = this._config.entity;
+    const hass = this._hass;
+    if (!id || !hass.entities || !hass.entities[id]) return null;
+    const device = hass.devices && hass.devices[hass.entities[id].device_id];
+    return device && device.config_entries ? device.config_entries : null;
+  }
+
+  _message(text, lang) {
+    this.shadowRoot.innerHTML = `<style>${SLF_BULLETIN_STYLE}</style><ha-card><div class="msg">${slfImisEsc(text)}</div>
+      <div class="attr">${slfImisEsc(SLF_ATTRIBUTION[lang])}</div></ha-card>`;
+  }
+
+  _render(data, lang) {
+    const s = SLF_BULLETIN_L10N[lang];
+    const entries = this._entryId();
+    const locations = data.locations || [];
+    const loc = (entries && locations.find((l) => entries.includes(l.entry_id))) || (!this._config.entity && locations[0]);
+    if (!loc) return this._message(s.no_location, lang);
+    const key = JSON.stringify([loc, lang]);
+    if (key === this._last) return;
+    this._last = key;
+    if (!loc.active) {
+      const text = data.season ? s.no_rating : s.no_bulletin;
+      this.shadowRoot.innerHTML = `<style>${SLF_BULLETIN_STYLE}</style><ha-card>
+        <div class="head">${slfBadge(null)}<div><div class="title">${slfImisEsc(loc.name)}</div>
+        <div class="sub">${slfImisEsc(loc.region)}</div></div></div>
+        <div class="core msg">${slfImisEsc(text)}</div><div class="attr">${slfImisEsc(SLF_ATTRIBUTION[lang])}</div></ha-card>`;
+      return;
+    }
+    const trend = loc.trend
+      ? `<div class="row"><ha-icon icon="${SLF_TREND_ICONS[loc.trend]}"></ha-icon>${slfImisEsc(s.tomorrow)}:
+         ${slfBadge(loc.danger_level_tomorrow, loc.danger_level_tomorrow_detail, true)}
+         ${slfImisEsc(loc.danger_text_tomorrow || '')} · ${slfImisEsc(s.trend[loc.trend] || '')}</div>`
+      : '';
+    const problems = (loc.avalanche_problems || []).map((p) => `
+      <div class="problem"><ha-icon icon="${SLF_PROBLEM_ICONS[p.type] || 'mdi:snowflake-alert'}"></ha-icon>
+        <div><div class="pname">${slfImisEsc(p.name)}</div><div class="pelev">${slfElevation(p.elevation, s)}</div></div>
+        ${slfAspectRose(p.aspects, { low: 1, moderate: 2, considerable: 3, high: 4, very_high: 5 }[p.level])}</div>`).join('');
+    const cell = (label, value) => (value == null ? '' : `<div class="cell"><div class="v">${slfImisEsc(value)}</div><div class="l">${slfImisEsc(label)}</div></div>`);
+    const snow = (x) => (x && x.cm != null ? `${x.cm} cm · ${x.elevation_m} m` : null);
+    const limit = loc.snowfall_limit
+      ? (loc.snowfall_limit.below_region ? s.below_region
+        : loc.snowfall_limit.min_m != null ? `${loc.snowfall_limit.min_m}–${loc.snowfall_limit.max_m} m` : null)
+      : null;
+    const more = [[s.tendency, loc.tendency], [s.snowpack, loc.snowpack], [s.weather, loc.weather_forecast]]
+      .filter(([, text]) => text)
+      .map(([label, text]) => `<details><summary>${slfImisEsc(label)}</summary><p>${slfImisEsc(text)}</p></details>`).join('');
+    this.shadowRoot.innerHTML = `<style>${SLF_BULLETIN_STYLE}</style><ha-card>
+      <div class="head">${slfBadge(loc.danger_level, loc.danger_level_detail)}
+        <div><div class="title">${slfImisEsc(loc.danger_text || '')}</div>
+        <div class="sub">${slfImisEsc(loc.name)} · ${slfImisEsc(loc.region)}</div></div></div>
+      ${loc.core_zone ? `<div class="core">${slfImisEsc(loc.core_zone)}</div>` : ''}
+      ${trend}
+      ${problems ? `<div class="problems">${problems}</div>` : ''}
+      <div class="weather">${cell(s.new_snow_24h, snow(loc.new_snow_last_24h))}${cell(s.new_snow_next, snow(loc.new_snow_forecast))}${cell(s.snowfall_limit, limit)}</div>
+      ${more}
+      <div class="attr">${slfImisEsc(s.valid_to)} ${slfImisEsc(slfDateTime(loc.valid_to, lang))} · ${slfImisEsc(SLF_ATTRIBUTION[lang])}</div>
+    </ha-card>`;
+  }
+}
+
+class SlfAvalancheMapCard extends HTMLElement {
+  static getStubConfig() { return {}; }
+
+  static getConfigForm() {
+    return { schema: [{ name: 'title', selector: { text: {} } }] };
+  }
+
+  setConfig(config) {
+    this._config = config || {};
+    if (!this.shadowRoot) this.attachShadow({ mode: 'open' });
+  }
+
+  getCardSize() { return 6; }
+
+  getGridOptions() { return { columns: 12, min_columns: 6 }; }
+
+  set hass(hass) {
+    this._hass = hass;
+    const lang = slfBulletinLangCode(hass);
+    slfBulletinFetch(hass).then(
+      (data) => this._render(data, lang),
+      () => {
+        this.shadowRoot.innerHTML = `<style>${SLF_BULLETIN_STYLE}</style><ha-card><div class="msg">${slfImisEsc(SLF_BULLETIN_L10N[lang].error)}</div></ha-card>`;
+      }
+    );
+  }
+
+  _render(data, lang) {
+    const key = JSON.stringify([data.regions && data.regions.map((r) => r.detail), lang, (data.locations || []).map((l) => l.region_id)]);
+    if (key === this._last) return;
+    this._last = key;
+    const s = SLF_BULLETIN_L10N[lang];
+    const regions = data.regions || [];
+    // An equirectangular projection squeezed by cos(46.8°): good enough for
+    // a country the size of Switzerland.
+    const kx = Math.cos((46.8 * Math.PI) / 180);
+    let minX = Infinity; let maxX = -Infinity; let minY = Infinity; let maxY = -Infinity;
+    for (const r of regions) for (const poly of r.polygons) for (const ring of poly) for (const [lon, lat] of ring) {
+      minX = Math.min(minX, lon * kx); maxX = Math.max(maxX, lon * kx); minY = Math.min(minY, -lat); maxY = Math.max(maxY, -lat);
+    }
+    const title = this._config.title || s.map;
+    if (!regions.length || !Number.isFinite(minX)) {
+      this.shadowRoot.innerHTML = `<style>${SLF_BULLETIN_STYLE}</style><ha-card><div class="title">${slfImisEsc(title)}</div>
+        <div class="msg">${slfImisEsc(s.no_bulletin)}</div></ha-card>`;
+      return;
+    }
+    const scale = 1000 / (maxX - minX);
+    const pt = (lon, lat) => `${((lon * kx - minX) * scale).toFixed(1)},${((-lat - minY) * scale).toFixed(1)}`;
+    const mine = new Set((data.locations || []).map((l) => l.region_id));
+    const paths = regions.map((r, i) => {
+      const d = r.polygons.map((poly) => poly.map((ring) => `M${ring.map(([lon, lat]) => pt(lon, lat)).join('L')}Z`).join('')).join('');
+      const fill = SLF_LEVEL_COLOURS[r.level] || 'var(--divider-color, #ddd)';
+      const cls = r.ids.some((id) => mine.has(id)) ? ' class="mine"' : '';
+      return `<path data-i="${i}" d="${d}" fill="${fill}" fill-rule="evenodd"${cls}><title>${slfImisEsc(r.name)}</title></path>`;
+    }).join('');
+    const markers = (data.locations || []).filter((l) => Number.isFinite(l.latitude) && Number.isFinite(l.longitude))
+      .map((l) => { const [x, y] = pt(l.longitude, l.latitude).split(','); return `<circle cx="${x}" cy="${y}" r="5" fill="var(--primary-color)" stroke="#fff" stroke-width="1.5"/>`; })
+      .join('');
+    const height = ((maxY - minY) * scale).toFixed(0);
+    const legend = [1, 2, 3, 4, 5].map((l) => `<span><span class="sw" style="background:${SLF_LEVEL_COLOURS[l]}"></span>${l}</span>`).join('')
+      + `<span><span class="sw" style="background:var(--divider-color, #ddd)"></span>${slfImisEsc(s.unrated)}</span>`;
+    this.shadowRoot.innerHTML = `<style>${SLF_BULLETIN_STYLE}</style><ha-card>
+      <div class="title">${slfImisEsc(title)}</div>
+      <svg class="map" viewBox="0 0 1000 ${height}" role="img" aria-label="${slfImisEsc(title)}">${paths}${markers}</svg>
+      <div class="legend">${legend}</div>
+      <div class="row info msg">${slfImisEsc(s.tap)}</div>
+      <div class="attr">${slfImisEsc(SLF_ATTRIBUTION[lang])}</div></ha-card>`;
+    const info = this.shadowRoot.querySelector('.info');
+    this.shadowRoot.querySelectorAll('svg.map path').forEach((el) => {
+      el.addEventListener('click', () => {
+        const r = regions[Number(el.dataset.i)];
+        this.shadowRoot.querySelectorAll('svg.map path.sel').forEach((p) => p.classList.remove('sel'));
+        el.classList.add('sel');
+        info.innerHTML = `${slfBadge(r.level, r.detail, true)} <span>${slfImisEsc(r.name)} · ${slfImisEsc(r.text || s.unrated)}</span>`;
+      });
+    });
+  }
+}
+
+customElements.define('slf-avalanche-bulletin-card', SlfAvalancheBulletinCard);
+customElements.define('slf-avalanche-map-card', SlfAvalancheMapCard);
+window.customCards.push(
+  {
+    type: 'slf-avalanche-bulletin-card',
+    name: 'SLF Avalanche Bulletin',
+    description: 'Danger level with subdivision, core zone, trend, avalanche problems with aspect rose, new snow',
+  },
+  {
+    type: 'slf-avalanche-map-card',
+    name: 'SLF Avalanche Danger Map',
+    description: 'All Swiss warning regions in the colours of the European avalanche danger scale',
+  },
+);
 
 /* ===================================================================== */
 /* The strategy block below is wrapped in an IIFE: several of these       */
@@ -683,22 +1053,15 @@ defineDashboardStrategy("swiss-avalanche-bulletin", {
       const badges = ids.danger_level
         ? [{ type: "entity", entity: ids.danger_level, show_state: true }]
         : undefined;
+      // The bulletin card shows level, core zone, trend, the problems with
+      // their aspect rose and the new snow in one place (since 1.7.0).
       const cards = [
         heading(deviceName(group.device), "mdi:snowflake-alert", badges),
-        ids.danger_level && tile(ids.danger_level, { color: "red", grid_options: { columns: 6 } }),
-        ids.region && tile(ids.region, { grid_options: { columns: 6 } }),
-        // The next day and the weather the bulletin gives for the region.
-        ids.danger_level_tomorrow && tile(ids.danger_level_tomorrow, { color: "orange", grid_options: { columns: 6 } }),
-        ids.trend && tile(ids.trend, { grid_options: { columns: 6 } }),
-        ids.new_snow_last_24h && tile(ids.new_snow_last_24h, { grid_options: { columns: 4 } }),
-        ids.new_snow_forecast && tile(ids.new_snow_forecast, { grid_options: { columns: 4 } }),
-        ids.snowfall_limit && tile(ids.snowfall_limit, { grid_options: { columns: 4 } }),
-        // Up to three problems in the order the bulletin reports them;
-        // outside the season they simply read "unknown".
-        ...Object.keys(ids)
-          .filter((suffix) => /^problem_\d+$/.test(suffix))
-          .sort()
-          .map((suffix) => tile(ids[suffix], { grid_options: { columns: 12 } })),
+        ids.danger_level && {
+          type: "custom:slf-avalanche-bulletin-card",
+          entity: ids.danger_level,
+          grid_options: { columns: 12 },
+        },
       ].filter(Boolean);
       // Full width like the old dashboard's sections: the half-width tiles
       // pair up and a problem tile spans the row instead of a quarter page.
@@ -741,7 +1104,11 @@ defineDashboardStrategy("swiss-avalanche-bulletin", {
       if (cards.length > 1) imisSections.push(grid(cards, columns));
     }
 
-    const sections = [...bulletinSections, ...imisSections];
+    // The danger map of all regions above the locations, when there is one.
+    const mapSections = bulletinSections.length
+      ? [grid([{ type: "custom:slf-avalanche-map-card", grid_options: { columns: 12 } }], columns)]
+      : [];
+    const sections = [...mapSections, ...bulletinSections, ...imisSections];
     if (!sections.length) {
       // Entities exist, but every one of them is hidden: say so instead of
       // rendering an empty view that looks broken.

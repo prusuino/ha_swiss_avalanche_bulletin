@@ -184,7 +184,8 @@ def _new_snow(period: dict | None) -> dict | None:
     if not values:
         return None
     top = max(values)
-    return {"cm": values[top], "elevation_m": top, "by_elevation": dict(sorted(values.items()))}
+    # string keys: the mapping also goes out as JSON (attributes, card API)
+    return {"cm": values[top], "elevation_m": top, "by_elevation": {str(k): v for k, v in sorted(values.items())}}
 
 
 def _weather(props: dict) -> dict:

@@ -20,7 +20,9 @@ A Home Assistant custom integration for the official Swiss **avalanche bulletin*
 - **The whole bulletin in your language**: the SLF's texts — avalanche problems, tendency, snowpack, weather review and forecast — come in German, French, Italian or English, whichever Home Assistant uses.
 - **Several locations**: home, a cabin, the area of the next tour — each is its own entry.
 - **IMIS measuring stations**: about 200 stations in the Alps and the Jura with snow depth, new snow in 24 hours, air and snow-surface temperature, humidity and wind, every 30 minutes from the official measurement API.
-- **A station card and a dashboard**: the bundled "SLF IMIS Station" card with a visual editor, and a dashboard strategy that lays out your locations and stations by itself.
+- **A danger map of Switzerland**: the bundled map card colours all warning regions in the European danger scale, marks your locations and names any region you tap.
+- **The bulletin on one card**: level with subdivision, core zone, tomorrow's level and trend, every avalanche problem with its icon, an aspect rose and the elevation band, new snow and snowfall limit, and the SLF's texts to unfold.
+- **A station card and a dashboard**: the bundled "SLF IMIS Station" card with a visual editor, and a dashboard strategy that lays out the map, your locations and stations by itself.
 - **Built for the automation editor**: triggers (danger level reached, danger level changed), conditions (danger level at least / below) and a notification blueprint — no templates needed.
 - **No value rather than a stale one**: outside the season, and in regions the bulletin lists without a rating (the lowlands in winter), the bulletin sensors report nothing; a station value counts as current only within 3 hours.
 - **Light on the network**: all locations share one bulletin download, and an unchanged bulletin is not downloaded again.
@@ -72,9 +74,17 @@ Their entity ids are built from the station code and the same four-character ent
 
 A value is only reported as current if it was measured within the last 3 hours; the `measure_date` attribute tells when the shown value was measured. The sensors of a station that cannot be fetched are `unavailable` until it answers again, and a station that is unreachable when Home Assistant starts gets its sensors as soon as it does — no reload needed.
 
-## Bundled card & dashboard
+## Bundled cards & dashboard
 
-The integration ships a Lovelace card, **SLF IMIS Station** (`custom:slf-imis-station-card`), with a visual editor — snow depth as the hero value, temperatures, wind with direction arrow, measurement age and the required SLF attribution — and, in the same file, a **dashboard strategy** that assembles a complete avalanche dashboard from your config entries at display time.
+The integration ships three Lovelace cards in one file, and in the same file a **dashboard strategy** that assembles a complete avalanche dashboard from your config entries at display time:
+
+| Card | Shows | Options |
+|---|---|---|
+| **SLF Avalanche Danger Map** (`custom:slf-avalanche-map-card`) | All warning regions of the current bulletin in the colours of the European danger scale (1 green to 5 dark red, grey = no rating); your bulletin locations are outlined and marked; tap a region for its name and level | `title` |
+| **SLF Avalanche Bulletin** (`custom:slf-avalanche-bulletin-card`) | The bulletin of one location: level with subdivision (3−, 3=, 3+), core zone, tomorrow's level and trend, each avalanche problem with an icon, an aspect rose (the slopes concerned, filled) and its elevation band, new snow of the last and next 24 hours, snowfall limit, and the tendency, snowpack and weather texts to unfold | `entity`: the location's danger-level sensor (without it, the first location) |
+| **SLF IMIS Station** (`custom:slf-imis-station-card`) | Snow depth as the hero value, temperatures, wind with direction arrow, measurement age | visual editor |
+
+The two bulletin cards follow the Home Assistant language and read the bulletin from the integration (`/api/slf_avalanche/bulletin`, for logged-in users only), which answers from its shared download — a card adds no request to the SLF. The problem icons are Material Design Icons chosen for this integration, not the official EAWS pictograms. Every card carries the required SLF attribution.
 
 ![IMIS station cards for four stations around Zermatt with snow depth, temperatures, humidity and wind, and the avalanche bulletin tiles below](docs/dashboard.png)
 
@@ -113,7 +123,8 @@ views: []
 
 You get one **Avalanches** view (two columns) with:
 
-- one full-width section per **bulletin location** — a heading named after the location's device, with the current danger level as a badge, then tiles for the danger level, the warning region and the up to three avalanche problems (outside the season the problems simply read "unknown");
+- the **danger map** across the top, when there is at least one bulletin location;
+- one full-width section per **bulletin location** — a heading named after the location's device, with the current danger level as a badge, then the bulletin card of that location (outside the season it says that there is no bulletin);
 - one full-width section per **IMIS entry** — "IMIS measuring stations" with a station card per favourite, two side by side.
 
 The strategy also appears under **+ Add dashboard** as *Swiss Avalanche Bulletin*, which does the same thing without the raw editor.

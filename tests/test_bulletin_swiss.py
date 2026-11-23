@@ -66,9 +66,9 @@ def test_no_next_day_without_evolution():
 
 def test_weather_of_the_forecast_and_the_day_before():
     report = b.region_report(SWISS)
-    assert report["new_snow_forecast"] == {"cm": 6, "elevation_m": 2500, "by_elevation": {1500: 4, 2500: 6}}
+    assert report["new_snow_forecast"] == {"cm": 6, "elevation_m": 2500, "by_elevation": {"1500": 4, "2500": 6}}
     # the period right before the forecast, not the oldest one
-    assert report["new_snow_last_24h"] == {"cm": 16, "elevation_m": 2500, "by_elevation": {1500: 12, 2500: 16}}
+    assert report["new_snow_last_24h"] == {"cm": 16, "elevation_m": 2500, "by_elevation": {"1500": 12, "2500": 16}}
     assert report["wind_speed_forecast"] == 20
     assert report["wind_direction_forecast"] == "NW"
     assert report["snowfall_limit"] == {"min_m": None, "max_m": None, "below_region": True}
