@@ -572,10 +572,15 @@ class SlfAvalancheMapCard extends HTMLElement {
     const scale = 1000 / (maxX - minX);
     const pt = (lon, lat) => `${((lon * kx - minX) * scale).toFixed(1)},${((-lat - minY) * scale).toFixed(1)}`;
     const mine = new Set((data.locations || []).map((l) => l.region_id));
-    const paths = regions.map((r, i) => {
+    // The regions of the own locations are drawn last: a neighbour drawn
+    // after them would cover half of their thicker outline.
+    const isMine = (r) => r.ids.some((id) => mine.has(id));
+    const order = regions.map((r, i) => i).sort((a, b) => isMine(regions[a]) - isMine(regions[b]));
+    const paths = order.map((i) => {
+      const r = regions[i];
       const d = r.polygons.map((poly) => poly.map((ring) => `M${ring.map(([lon, lat]) => pt(lon, lat)).join('L')}Z`).join('')).join('');
       const fill = SLF_LEVEL_COLOURS[r.level] || 'var(--divider-color, #ddd)';
-      const cls = r.ids.some((id) => mine.has(id)) ? ' class="mine"' : '';
+      const cls = isMine(r) ? ' class="mine"' : '';
       return `<path data-i="${i}" d="${d}" fill="${fill}" fill-rule="evenodd"${cls}><title>${slfImisEsc(r.name)}</title></path>`;
     }).join('');
     const markers = (data.locations || []).filter((l) => Number.isFinite(l.latitude) && Number.isFinite(l.longitude))
@@ -596,6 +601,8 @@ class SlfAvalancheMapCard extends HTMLElement {
         const r = regions[Number(el.dataset.i)];
         this.shadowRoot.querySelectorAll('svg.map path.sel').forEach((p) => p.classList.remove('sel'));
         el.classList.add('sel');
+        // on top of the other regions, below the location markers
+        el.parentNode.insertBefore(el, el.parentNode.querySelector('circle'));
         info.innerHTML = `${slfBadge(r.level, r.detail, true)} <span>${slfImisEsc(r.name)} · ${slfImisEsc(r.text || s.unrated)}</span>`;
       });
     });
