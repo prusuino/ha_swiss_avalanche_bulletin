@@ -11,9 +11,8 @@ from homeassistant.helpers.aiohttp_client import async_get_clientsession
 from homeassistant.helpers.update_coordinator import DataUpdateCoordinator, UpdateFailed
 from homeassistant.util import dt as dt_util
 
+from .bulletin import async_get_bulletin, find_feature, region_report
 from .const import (
-    BULLETIN_URL,
-    DANGER_LEVEL_NUMBERS,
     DOMAIN,
     IMIS_UPDATE_INTERVAL_MINUTES,
     SECTOR_URL,
@@ -21,6 +20,7 @@ from .const import (
 )
 from .imis import async_fetch_daily_snow, async_fetch_station_measurements
 from .issues import IssueReporter
+from .localization import get_language
 
 _LOGGER = logging.getLogger(__name__)
 
@@ -42,36 +42,12 @@ async def async_resolve_sector(hass: HomeAssistant, lat: float, lon: float) -> d
     return {"sector_id": data["sector_id"], "sector_name": data["sector_name"]}
 
 
-async def async_fetch_bulletin(hass: HomeAssistant) -> dict:
-    """Fetch the currently valid avalanche bulletin (empty outside winter season)."""
-    session = async_get_clientsession(hass)
-    async with session.get(BULLETIN_URL, timeout=25) as resp:
-        resp.raise_for_status()
-        return await resp.json(content_type=None)
-
-
-def _find_feature_for_region(bulletin: dict, region_id: str) -> dict | None:
-    for feature in bulletin.get("features", []):
-        regions = feature.get("properties", {}).get("regions", [])
-        if any(r.get("regionID") == region_id for r in regions):
-            return feature
-    return None
-
-
-def _worst_danger_rating(danger_ratings: list[dict]) -> dict | None:
-    """Pick the highest reported danger level (if split by elevation)."""
-    best = None
-    best_level = -1
-    for dr in danger_ratings:
-        level = DANGER_LEVEL_NUMBERS.get(dr.get("mainValue", ""), 0)
-        if level > best_level:
-            best_level = level
-            best = dr
-    return best
-
-
 class SlfAvalancheCoordinator(DataUpdateCoordinator[dict]):
-    """Fetches the sector assignment (once) and the bulletin (hourly)."""
+    """Fetches the sector assignment (once) and the bulletin (hourly).
+
+    The bulletin itself is shared between all bulletin entries and read in
+    Home Assistant's language (German, French, Italian or English).
+    """
 
     def __init__(
         self,
@@ -112,7 +88,7 @@ class SlfAvalancheCoordinator(DataUpdateCoordinator[dict]):
                 self.issues.clear("region_unknown")
 
         try:
-            bulletin = await async_fetch_bulletin(self.hass)
+            bulletin = await async_get_bulletin(self.hass, get_language(self.hass))
         except API_ERRORS as err:
             if self.issues:
                 self.issues.failure("unreachable", {"host": "aws.slf.ch"})
@@ -121,36 +97,11 @@ class SlfAvalancheCoordinator(DataUpdateCoordinator[dict]):
             self.issues.clear("unreachable")
 
         region_id = f"CH-{self._sector['sector_id']}"
-        feature = _find_feature_for_region(bulletin, region_id)
-
-        result = {
+        return {
             "sector_id": self._sector["sector_id"],
             "sector_name": self._sector["sector_name"],
-            "active": feature is not None,
+            **region_report(find_feature(bulletin, region_id)),
         }
-
-        if feature is None:
-            return result
-
-        props = feature.get("properties", {})
-        danger_ratings = props.get("dangerRatings", [])
-        worst = _worst_danger_rating(danger_ratings)
-        main_value = (worst or {}).get("mainValue")
-
-        result.update(
-            {
-                "danger_level": DANGER_LEVEL_NUMBERS.get(main_value or "", None),
-                "danger_main_value": main_value,
-                "danger_ratings_raw": danger_ratings,
-                "valid_from": props.get("validTime", {}).get("startTime"),
-                "valid_to": props.get("validTime", {}).get("endTime"),
-                "next_update": props.get("nextUpdate"),
-                "publication_time": props.get("publicationTime"),
-                "unscheduled": props.get("unscheduled"),
-                "avalanche_problems": props.get("avalancheProblems", []),
-            }
-        )
-        return result
 
 
 class ImisCoordinator(DataUpdateCoordinator[dict]):

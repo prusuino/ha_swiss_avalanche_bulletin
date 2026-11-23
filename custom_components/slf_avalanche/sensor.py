@@ -149,6 +149,10 @@ class SlfDangerLevelSensor(CoordinatorEntity[SlfAvalancheCoordinator], SensorEnt
     _attr_has_entity_name = False
     _attr_attribution = ATTRIBUTION
     _attr_icon = "mdi:alert-octagon-outline"
+    # The bulletin texts change once a day and would fill the recorder.
+    _unrecorded_attributes = frozenset(
+        {"core_zone", "tendency", "snowpack", "weather_review", "weather_forecast", "danger_ratings_raw"}
+    )
 
     def __init__(
         self, hass: HomeAssistant, coordinator: SlfAvalancheCoordinator, entry: ConfigEntry
@@ -169,6 +173,13 @@ class SlfDangerLevelSensor(CoordinatorEntity[SlfAvalancheCoordinator], SensorEnt
         return {
             "active": d.get("active"),
             "danger_text": danger_level_text(d.get("danger_main_value"), self.hass),
+            "danger_level_detail": d.get("danger_level_detail"),
+            "subdivision": d.get("subdivision"),
+            "core_zone": d.get("core_zone"),
+            "tendency": d.get("tendency"),
+            "snowpack": d.get("snowpack"),
+            "weather_review": d.get("weather_review"),
+            "weather_forecast": d.get("weather_forecast"),
             "region": d.get("sector_name"),
             "valid_from": d.get("valid_from"),
             "valid_to": d.get("valid_to"),
@@ -210,6 +221,7 @@ class SlfProblemSensor(CoordinatorEntity[SlfAvalancheCoordinator], SensorEntity)
     _attr_has_entity_name = False
     _attr_attribution = ATTRIBUTION
     _attr_icon = "mdi:snowflake-alert"
+    _unrecorded_attributes = frozenset({"core_zone", "comment"})
 
     def __init__(
         self, hass: HomeAssistant, coordinator: SlfAvalancheCoordinator, entry: ConfigEntry, index: int
@@ -247,6 +259,7 @@ class SlfProblemSensor(CoordinatorEntity[SlfAvalancheCoordinator], SensorEntity)
             "elevation_from": elevation.get("lowerBound"),
             "elevation_to": elevation.get("upperBound"),
             "aspects": p.get("aspects"),
+            "core_zone": p.get("core_zone"),
             "comment": p.get("comment"),
         }
 

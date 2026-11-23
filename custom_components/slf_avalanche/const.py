@@ -3,7 +3,7 @@ from pathlib import Path
 """Constants for the Swiss Avalanche Bulletin (SLF) integration."""
 DOMAIN = "slf_avalanche"
 
-BULLETIN_URL = "https://aws.slf.ch/api/bulletin/caaml/de/geojson"
+BULLETIN_URL = "https://aws.slf.ch/api/bulletin/caaml/{lang}/geojson"
 SECTOR_URL = "https://aws.slf.ch/api/warningregion/sector/findByLocWGS84"
 
 # Official SLF measurement API (https://measurement-api.slf.ch/, CC BY 4.0).

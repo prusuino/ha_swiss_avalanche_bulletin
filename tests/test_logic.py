@@ -8,7 +8,8 @@ from unittest.mock import AsyncMock, patch
 import pytest
 from homeassistant.util import dt as dt_util
 
-from custom_components.slf_avalanche.coordinator import _find_feature_for_region, _worst_danger_rating
+from custom_components.slf_avalanche.bulletin import find_feature as _find_feature_for_region
+from custom_components.slf_avalanche.bulletin import worst_danger_rating as _worst_danger_rating
 from custom_components.slf_avalanche.imis import (
     async_fetch_station_measurements,
     haversine_km,

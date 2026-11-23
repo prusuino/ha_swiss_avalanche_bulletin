@@ -1,5 +1,17 @@
 # Changelog
 
+## 1.7.0 — 2026-11-23
+
+Checked against the first winter bulletin of the season (23 November 2026, 149 regions).
+
+- **Fixed: the bulletin came in German for everybody.** The SLF's texts (avalanche-problem comments) are now fetched in Home Assistant's language: German, French, Italian or English.
+- **Fixed: regions without a rating showed as active.** In winter the bulletin lists the lowlands (Mittelland, Jura, southern Ticino) without a danger rating; a location there reported `active: true` with an empty level. It now reports `active: false`, like outside the season.
+- **Fixed: raw HTML in the texts.** The comments carried `<br/>` tags; all bulletin texts are now plain text with line breaks.
+- **New: the Swiss subdivision of the level.** The danger-level sensor has the attributes `danger_level_detail` (`3-`, `3=`, `3+`) and `subdivision` (`minus`, `neutral`, `plus`). The state stays the number 1–5.
+- **New: the core zone.** `core_zone` on the danger-level sensor and on each avalanche-problem sensor holds the SLF's sentence on where the level applies, for example "Considerable (3-) on west to south-east aspects above 2200 m".
+- **New: tendency, snowpack and weather.** The danger-level sensor carries the bulletin's `tendency`, `snowpack`, `weather_review` and `weather_forecast` texts for the region. Like the problem comments, these long texts are not written to the recorder.
+- **Lighter on the network.** All bulletin locations share one download, and the hourly check asks the server whether the bulletin changed (ETag) before downloading it again.
+
 ## 1.6.3 — 2026-11-19
 
 - The Home Assistant Marketplace lists the integration under *Weather & alerts → Public warnings*. The repository is marked as made for Switzerland. Nothing changes in how the integration works.

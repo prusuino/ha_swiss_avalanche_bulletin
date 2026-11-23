@@ -15,12 +15,14 @@ A Home Assistant custom integration for the official Swiss **avalanche bulletin*
 
 ## Highlights
 
-- **The danger level for your spot**: your coordinates are resolved to one of about 150 SLF warning regions; the sensors give the danger level 1–5, the region and up to three avalanche problems, refreshed every hour.
+- **The danger level for your spot**: your coordinates are resolved to one of about 150 SLF warning regions; the sensors give the danger level 1–5 with the Swiss subdivision (3−, 3=, 3+), the core zone in the SLF's words ("considerable (3−) above 2200 m"), the region and up to three avalanche problems, refreshed every hour.
+- **The whole bulletin in your language**: the SLF's texts — avalanche problems, tendency, snowpack, weather review and forecast — come in German, French, Italian or English, whichever Home Assistant uses.
 - **Several locations**: home, a cabin, the area of the next tour — each is its own entry.
 - **IMIS measuring stations**: about 200 stations in the Alps and the Jura with snow depth, new snow in 24 hours, air and snow-surface temperature, humidity and wind, every 30 minutes from the official measurement API.
 - **A station card and a dashboard**: the bundled "SLF IMIS Station" card with a visual editor, and a dashboard strategy that lays out your locations and stations by itself.
 - **Built for the automation editor**: triggers (danger level reached, danger level changed), conditions (danger level at least / below) and a notification blueprint — no templates needed.
-- **No value rather than a stale one**: outside the season the bulletin sensors report nothing, and a station value counts as current only within 3 hours.
+- **No value rather than a stale one**: outside the season, and in regions the bulletin lists without a rating (the lowlands in winter), the bulletin sensors report nothing; a station value counts as current only within 3 hours.
+- **Light on the network**: all locations share one bulletin download, and an unchanged bulletin is not downloaded again.
 - **Set up in a minute**: starts from your Home Assistant location, stations are picked from a list sorted by distance; German, English, French and Italian; diagnostics download with your coordinates redacted.
 
 ## Background
@@ -30,7 +32,7 @@ The SLF publishes a nationwide avalanche bulletin covering ~150 warning regions 
 1. Resolves your configured latitude/longitude to the SLF warning region ("sector") that covers it, using the SLF's own coordinate lookup endpoint.
 2. Fetches the current bulletin and extracts the danger rating and avalanche problems for that specific region.
 
-Outside the winter season (or when your region isn't covered by an active bulletin), the sensors simply report no value rather than a stale or incorrect one.
+Outside the winter season, or when the bulletin lists your region without a danger rating (in winter that is the case for the Mittelland, the Jura and southern Ticino), the sensors simply report no value rather than a stale or incorrect one, and the attribute `active` is `false`.
 
 **Multiple locations:** add the integration again to track a second location (e.g. a mountain cabin in addition to your home) — each instance is independent.
 
@@ -40,13 +42,13 @@ Per configured location:
 
 | Entity | Description |
 |---|---|
-| `sensor.slf_avalanche_danger_level_<label>` | Current avalanche danger level as a **number (1–5)**, so it can be used directly in automations/thresholds. Attributes: text label (e.g. "Considerable"), whether a bulletin is currently active, validity period, next update time, publication time, the raw danger-rating data (bulletins can split the rating by elevation) |
+| `sensor.slf_avalanche_danger_level_<label>` | Current avalanche danger level as a **number (1–5)**, so it can be used directly in automations/thresholds. Attributes: text label (e.g. "Considerable"), `danger_level_detail` with the Swiss subdivision (`3-`, `3=`, `3+`; `subdivision` holds `minus`/`neutral`/`plus`), `core_zone` (the SLF's sentence on where the level applies), `tendency`, `snowpack`, `weather_review` and `weather_forecast` (the bulletin's texts for the region, as plain text), whether the region currently has a rated bulletin (`active`), validity period, next update time, publication time, the raw danger-rating data (bulletins can split the rating by elevation). The long texts are not written to the recorder |
 | `sensor.slf_avalanche_region_<label>` | The SLF warning region name resolved for your coordinates (e.g. "Davos") — lets you confirm the location match is correct |
-| `sensor.slf_avalanche_problem_1/2/3_<label>` | Up to 3 currently reported avalanche problems (e.g. wind-drifted snow, persistent weak layers, wet snow). Each includes elevation range, affected aspects (compass directions), and the SLF's full plain-text explanation. Entities report no value on days with fewer than 3 reported problems |
+| `sensor.slf_avalanche_problem_1/2/3_<label>` | Up to 3 currently reported avalanche problems (e.g. wind-drifted snow, persistent weak layers, wet snow). Each includes elevation range, affected aspects (compass directions), the problem's core zone (`core_zone`) and the SLF's full plain-text explanation (`comment`, not written to the recorder). Entities report no value on days with fewer than 3 reported problems |
 
 `<label>` is the label you gave the location when adding it — or, if you left it empty, the name of the resolved SLF warning region — slugified, followed by the last four characters of the config entry id so that two locations with the same label never collide: a location labelled "Home" gets something like `sensor.slf_avalanche_danger_level_home_ab12`, an unlabelled one in the Davos region `sensor.slf_avalanche_danger_level_davos_ab12`. The integration suggests these object ids itself when an entity is first created, so they do not depend on your Home Assistant language — only the displayed names are localized. Entities created by versions before 1.3.0 keep their ids without the four-character part. Like any entity, they can be renamed in the entity settings afterwards.
 
-Data is refreshed every hour. The bulletin itself is typically published once daily (around 17:00), with interim updates during high-danger situations.
+Data is refreshed every hour. The bulletin itself is typically published once daily (around 17:00), with interim updates during high-danger situations. All locations share one download of the bulletin; the hourly check asks the SLF server whether it changed (ETag) and downloads it again only when it did.
 
 ## IMIS measuring stations
 
@@ -211,7 +213,7 @@ conditions:
 
 ## Language
 
-Entity names, device info, and the danger-level/avalanche-problem text all follow the official multilingual EAWS (European Avalanche Warning Services) terminology and adapt automatically to your Home Assistant language setting — German, English, French, and Italian are supported, with English as the fallback for any other language. The bundled card and the dashboard strategy follow the language of the Home Assistant frontend the same way.
+Entity names, device info, and the danger-level/avalanche-problem text all follow the official multilingual EAWS (European Avalanche Warning Services) terminology and adapt automatically to your Home Assistant language setting — German, English, French, and Italian are supported, with English as the fallback for any other language. The bulletin itself (the SLF's comments, core zones, tendency, snowpack and weather texts) is fetched in the same language; the SLF writes it in all four. The bundled card and the dashboard strategy follow the language of the Home Assistant frontend the same way.
 
 ## Installation
 
