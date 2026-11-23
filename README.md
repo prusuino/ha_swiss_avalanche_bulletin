@@ -86,7 +86,9 @@ The integration ships three Lovelace cards in one file, and in the same file a *
 
 The two bulletin cards follow the Home Assistant language and read the bulletin from the integration (`/api/slf_avalanche/bulletin`, for logged-in users only), which answers from its shared download — a card adds no request to the SLF. The problem icons are Material Design Icons chosen for this integration, not the official EAWS pictograms. Every card carries the required SLF attribution.
 
-![IMIS station cards for four stations around Zermatt with snow depth, temperatures, humidity and wind, and the avalanche bulletin tiles below](docs/dashboard.png)
+![The danger map of Switzerland coloured by danger level with three locations outlined, next to the bulletin card for Zermatt showing level 3=, the core zone, tomorrow's level, two avalanche problems with aspect roses, new snow and the snowfall limit](docs/bulletin.png)
+
+![IMIS station cards for four stations around Zermatt with snow depth, temperatures, humidity and wind, and the tiles of earlier versions below](docs/dashboard.png)
 
 The card file is served by the integration, but you register it as a Lovelace resource yourself — the integration does not write to your dashboard configuration. It is a one-time step.
 

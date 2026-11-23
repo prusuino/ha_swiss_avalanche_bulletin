@@ -512,7 +512,7 @@ class SlfAvalancheBulletinCard extends HTMLElement {
     this.shadowRoot.innerHTML = `<style>${SLF_BULLETIN_STYLE}</style><ha-card>
       <div class="head">${slfBadge(loc.danger_level, loc.danger_level_detail)}
         <div><div class="title">${slfImisEsc(loc.danger_text || '')}</div>
-        <div class="sub">${slfImisEsc(loc.name)} · ${slfImisEsc(loc.region)}</div></div></div>
+        <div class="sub">${slfImisEsc(loc.name === loc.region ? loc.region : `${loc.name} · ${loc.region}`)}</div></div></div>
       ${loc.core_zone ? `<div class="core">${slfImisEsc(loc.core_zone)}</div>` : ''}
       ${trend}
       ${problems ? `<div class="problems">${problems}</div>` : ''}

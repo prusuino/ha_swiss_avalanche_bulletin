@@ -1,5 +1,10 @@
 # Changelog
 
+## Unreleased
+
+- The bulletin card no longer repeats the name when a location is called like its warning region ("Zermatt · Zermatt").
+- README: a screenshot of the danger map and the bulletin card.
+
 ## 1.7.0 — 2026-11-23
 
 Checked against the first winter bulletin of the season (23 November 2026, 149 regions).
