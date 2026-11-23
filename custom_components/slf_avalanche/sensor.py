@@ -61,6 +61,7 @@ async def async_setup_entry(
         ]
         for i in range(MAX_PROBLEM_SENSORS):
             entities.append(SlfProblemSensor(hass, coordinator, entry, i))
+        entities.extend(SlfBulletinValueSensor(hass, coordinator, entry, d) for d in BULLETIN_VALUE_SENSORS)
         async_add_entities(entities)
 
     if data.imis is not None:
@@ -262,6 +263,92 @@ class SlfProblemSensor(CoordinatorEntity[SlfAvalancheCoordinator], SensorEntity)
             "core_zone": p.get("core_zone"),
             "comment": p.get("comment"),
         }
+
+
+def _tomorrow(hass: HomeAssistant, d: dict):
+    return d.get("danger_level_tomorrow"), {
+        "danger_text": danger_level_text(d.get("danger_main_value_tomorrow"), hass),
+        "danger_level_detail": d.get("danger_level_tomorrow_detail"),
+        "date": d.get("tomorrow_date"),
+        "region": d.get("sector_name"),
+    }
+
+
+def _trend(hass: HomeAssistant, d: dict):
+    trend = d.get("trend")
+    return (t(f"trend_{trend}", hass) if trend else None), {
+        "trend": trend,
+        "today": d.get("danger_level_detail"),
+        "tomorrow": d.get("danger_level_tomorrow_detail"),
+        "comment": d.get("tendency"),
+    }
+
+
+def _snow(key: str):
+    def value(hass: HomeAssistant, d: dict):
+        snow = d.get(key) or {}
+        return snow.get("cm"), {"elevation_m": snow.get("elevation_m"), "by_elevation": snow.get("by_elevation")}
+    return value
+
+
+def _snowfall_limit(hass: HomeAssistant, d: dict):
+    limit = d.get("snowfall_limit") or {}
+    return limit.get("min_m"), {"max_m": limit.get("max_m"), "below_region": limit.get("below_region")}
+
+
+def _wind(hass: HomeAssistant, d: dict):
+    return d.get("wind_speed_forecast"), {"direction": d.get("wind_direction_forecast")}
+
+
+def _temperature(hass: HomeAssistant, d: dict):
+    return d.get("temperature_max"), {"elevation_m": d.get("temperature_elevation_m")}
+
+
+# key, name key, unit, device class, icon, value function, enabled by default
+BULLETIN_VALUE_SENSORS: tuple[tuple, ...] = (
+    ("danger_level_tomorrow", "tomorrow_sensor_name", None, None, "mdi:alert-octagon-outline", _tomorrow, True),
+    ("trend", "trend_sensor_name", None, None, "mdi:trending-up", _trend, True),
+    ("new_snow_forecast", "new_snow_forecast_sensor_name", UnitOfLength.CENTIMETERS, None, "mdi:weather-snowy", _snow("new_snow_forecast"), True),
+    ("new_snow_last_24h", "new_snow_last_24h_sensor_name", UnitOfLength.CENTIMETERS, None, "mdi:snowflake", _snow("new_snow_last_24h"), True),
+    ("snowfall_limit", "snowfall_limit_sensor_name", UnitOfLength.METERS, None, "mdi:image-filter-hdr", _snowfall_limit, True),
+    ("wind_forecast", "wind_forecast_sensor_name", UnitOfSpeed.KILOMETERS_PER_HOUR, SensorDeviceClass.WIND_SPEED, "mdi:weather-windy", _wind, False),
+    ("temperature_forecast", "temperature_forecast_sensor_name", UnitOfTemperature.CELSIUS, SensorDeviceClass.TEMPERATURE, None, _temperature, False),
+)
+
+
+class SlfBulletinValueSensor(CoordinatorEntity[SlfAvalancheCoordinator], SensorEntity):
+    """A value the bulletin gives for the region: the level of the next day,
+    the trend, new snow, snowfall limit, wind and temperature. Like the other
+    bulletin sensors they report nothing outside the season."""
+
+    _attr_has_entity_name = False
+    _attr_attribution = ATTRIBUTION
+    _unrecorded_attributes = frozenset({"comment", "by_elevation"})
+
+    def __init__(
+        self, hass: HomeAssistant, coordinator: SlfAvalancheCoordinator, entry: ConfigEntry, description: tuple
+    ) -> None:
+        super().__init__(coordinator)
+        key, name_key, unit, device_class, icon, value, enabled = description
+        self._value = value
+        self._attr_name = t(name_key, hass)
+        self._attr_unique_id = f"{entry.entry_id}_{key}"
+        self._attr_device_info = device_info(hass, entry)
+        self._attr_native_unit_of_measurement = unit
+        self._attr_device_class = device_class
+        self._attr_icon = icon
+        self._attr_entity_registry_enabled_default = enabled
+        self.entity_id = f"sensor.slf_avalanche_{key}_{_slug(entry)}_{_entry_suffix(entry)}"
+
+    @property
+    def native_value(self):
+        return self._value(self.hass, self.coordinator.data)[0]
+
+    @property
+    def extra_state_attributes(self):
+        if not self.coordinator.data.get("active"):
+            return {}
+        return self._value(self.hass, self.coordinator.data)[1]
 
 
 class ImisMeasurementSensor(CoordinatorEntity[ImisCoordinator], SensorEntity):

@@ -16,6 +16,7 @@ A Home Assistant custom integration for the official Swiss **avalanche bulletin*
 ## Highlights
 
 - **The danger level for your spot**: your coordinates are resolved to one of about 150 SLF warning regions; the sensors give the danger level 1–5 with the Swiss subdivision (3−, 3=, 3+), the core zone in the SLF's words ("considerable (3−) above 2200 m"), the region and up to three avalanche problems, refreshed every hour.
+- **Tomorrow and the weather, as values**: the level the SLF expects for the next day and the trend (increasing, steady, decreasing — subdivision included), new snow of the last and the next 24 hours, the snowfall limit, wind and temperature — sensors you can automate on.
 - **The whole bulletin in your language**: the SLF's texts — avalanche problems, tendency, snowpack, weather review and forecast — come in German, French, Italian or English, whichever Home Assistant uses.
 - **Several locations**: home, a cabin, the area of the next tour — each is its own entry.
 - **IMIS measuring stations**: about 200 stations in the Alps and the Jura with snow depth, new snow in 24 hours, air and snow-surface temperature, humidity and wind, every 30 minutes from the official measurement API.
@@ -45,6 +46,11 @@ Per configured location:
 | `sensor.slf_avalanche_danger_level_<label>` | Current avalanche danger level as a **number (1–5)**, so it can be used directly in automations/thresholds. Attributes: text label (e.g. "Considerable"), `danger_level_detail` with the Swiss subdivision (`3-`, `3=`, `3+`; `subdivision` holds `minus`/`neutral`/`plus`), `core_zone` (the SLF's sentence on where the level applies), `tendency`, `snowpack`, `weather_review` and `weather_forecast` (the bulletin's texts for the region, as plain text), whether the region currently has a rated bulletin (`active`), validity period, next update time, publication time, the raw danger-rating data (bulletins can split the rating by elevation). The long texts are not written to the recorder |
 | `sensor.slf_avalanche_region_<label>` | The SLF warning region name resolved for your coordinates (e.g. "Davos") — lets you confirm the location match is correct |
 | `sensor.slf_avalanche_problem_1/2/3_<label>` | Up to 3 currently reported avalanche problems (e.g. wind-drifted snow, persistent weak layers, wet snow). Each includes elevation range, affected aspects (compass directions), the problem's core zone (`core_zone`) and the SLF's full plain-text explanation (`comment`, not written to the recorder). Entities report no value on days with fewer than 3 reported problems |
+| `sensor.slf_avalanche_danger_level_tomorrow_<label>` | The level (1–5) the SLF expects for the day after the bulletin's day. Attributes: `danger_text`, `danger_level_detail` with the subdivision, `date` |
+| `sensor.slf_avalanche_trend_<label>` | Increasing, steady or decreasing: tomorrow's level against today's, subdivision included (3− < 3= < 3+). The attribute `trend` holds `increasing`/`steady`/`decreasing` in every language — use it in automations — next to `today`, `tomorrow` and the bulletin's tendency text (`comment`) |
+| `sensor.slf_avalanche_new_snow_last_24h_<label>` / `…new_snow_forecast_<label>` | New snow (cm) of the last 24 hours and the forecast for the next 24 hours, at the highest elevation the SLF gives for the region (`elevation_m`); `by_elevation` has all of them, e.g. 1500 m and 2500 m |
+| `sensor.slf_avalanche_snowfall_limit_<label>` | Lowest snowfall limit (m) of the next 24 hours; `max_m` the highest. When the snow line stays below the region all day the state is unknown and `below_region` is `true` |
+| `sensor.slf_avalanche_wind_forecast_<label>` / `…temperature_forecast_<label>` | Wind (km/h, attribute `direction`) and maximum temperature (°C at `elevation_m`, usually 2000 m) of the next 24 hours. **Disabled by default** — enable them under the entity settings |
 
 `<label>` is the label you gave the location when adding it — or, if you left it empty, the name of the resolved SLF warning region — slugified, followed by the last four characters of the config entry id so that two locations with the same label never collide: a location labelled "Home" gets something like `sensor.slf_avalanche_danger_level_home_ab12`, an unlabelled one in the Davos region `sensor.slf_avalanche_danger_level_davos_ab12`. The integration suggests these object ids itself when an entity is first created, so they do not depend on your Home Assistant language — only the displayed names are localized. Entities created by versions before 1.3.0 keep their ids without the four-character part. Like any entity, they can be renamed in the entity settings afterwards.
 
@@ -80,7 +86,7 @@ The card file is served by the integration, but you register it as a Lovelace re
 
 | Field | Value |
 |---|---|
-| URL | `/slf_avalanche/static/slf-imis-card.js?v=1.3.0` |
+| URL | `/slf_avalanche/static/slf-imis-card.js?v=1.7.0` |
 | Resource type | JavaScript module |
 
 Then reload the page (Ctrl/Cmd+Shift+R). The card appears as **SLF IMIS Station** in the normal card picker, with its visual editor; the same file also contains the [dashboard strategy](#dashboard), so this one resource covers both.

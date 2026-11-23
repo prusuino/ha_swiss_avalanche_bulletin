@@ -14,6 +14,7 @@ import html
 import re
 import time
 from dataclasses import dataclass, field
+from datetime import date, datetime, timedelta
 
 from homeassistant.core import HomeAssistant
 from homeassistant.helpers.aiohttp_client import async_get_clientsession
@@ -25,6 +26,7 @@ SHARE_SECONDS = 300
 
 # The Swiss bulletin refines the level by a subdivision of the level itself.
 SUBDIVISION_SIGN = {"minus": "-", "neutral": "=", "plus": "+"}
+SUBDIVISION_RANK = {"minus": -1, "neutral": 0, "plus": 1}
 
 
 @dataclass
@@ -120,6 +122,105 @@ def _comments(value) -> str | None:
     return "\n".join(t for t in texts if t) or None
 
 
+def _level_detail(rating: dict | None) -> tuple[int | None, str | None]:
+    """The level 1-5 of a rating and its Swiss form with subdivision (3+)."""
+    level = DANGER_LEVEL_NUMBERS.get((rating or {}).get("mainValue") or "")
+    if level is None:
+        return None, None
+    return level, f"{level}{SUBDIVISION_SIGN.get(_subdivision(rating) or '', '')}"
+
+
+def _rank(rating: dict | None) -> tuple[int, int] | None:
+    level = DANGER_LEVEL_NUMBERS.get((rating or {}).get("mainValue") or "")
+    if level is None:
+        return None
+    return level, SUBDIVISION_RANK.get(_subdivision(rating) or "", 0)
+
+
+def _parse_time(value: str | None) -> datetime | None:
+    try:
+        return datetime.fromisoformat(value.replace("Z", "+00:00")) if value else None
+    except ValueError:
+        return None
+
+
+def _next_day(props: dict, today_rating: dict | None) -> dict:
+    """The level the SLF expects for the day after the bulletin's day.
+
+    The Swiss bulletin lists the danger level per day under
+    customData.CH.dangerRatingEvolution: past days, the bulletin's own day
+    (the date its validity ends) and the next one. The trend compares the
+    next day with today, subdivision included (3- < 3= < 3+).
+    """
+    end = _parse_time((props.get("validTime") or {}).get("endTime"))
+    evolution = (((props.get("customData") or {}).get("CH")) or {}).get("dangerRatingEvolution") or []
+    if end is None or not evolution:
+        return {}
+    tomorrow = (end.date() + timedelta(days=1)).isoformat()
+    rating = next((e.get("dangerRating") for e in evolution if e.get("date") == tomorrow), None)
+    level, detail = _level_detail(rating)
+    if level is None:
+        return {}
+    trend = None
+    now_rank, next_rank = _rank(today_rating), _rank(rating)
+    if now_rank is not None:
+        trend = "increasing" if next_rank > now_rank else "decreasing" if next_rank < now_rank else "steady"
+    return {
+        "danger_level_tomorrow": level,
+        "danger_main_value_tomorrow": rating.get("mainValue"),
+        "danger_level_tomorrow_detail": detail,
+        "tomorrow_date": tomorrow,
+        "trend": trend,
+    }
+
+
+def _new_snow(period: dict | None) -> dict | None:
+    """New snow of a weather period: the value at the highest elevation the
+    SLF gives, and all elevations as {elevation_m: cm}."""
+    values = {}
+    for item in (period or {}).get("newSnow") or []:
+        if item.get("elevationM") is not None and item.get("snowCm") is not None:
+            values[int(item["elevationM"])] = item["snowCm"]
+    if not values:
+        return None
+    top = max(values)
+    return {"cm": values[top], "elevation_m": top, "by_elevation": dict(sorted(values.items()))}
+
+
+def _weather(props: dict) -> dict:
+    """The structured weather of the region: the forecast period (the one
+    that starts with the bulletin's validity) and the last 24 h before it."""
+    periods = (((props.get("customData") or {}).get("CH")) or {}).get("weather") or []
+    periods = [p for p in periods if isinstance(p, dict) and _parse_time((p.get("period") or {}).get("start"))]
+    if not periods:
+        return {}
+    periods.sort(key=lambda p: _parse_time(p["period"]["start"]))
+    start = _parse_time((props.get("validTime") or {}).get("startTime"))
+    forecast = next((p for p in periods if start and _parse_time(p["period"]["start"]) >= start), None)
+    past = [p for p in periods if p is not forecast and (forecast is None or _parse_time(p["period"]["start"]) < _parse_time(forecast["period"]["start"]))]
+    review = past[-1] if past else None
+
+    out: dict = {"new_snow_forecast": _new_snow(forecast), "new_snow_last_24h": _new_snow(review)}
+    if forecast:
+        wind = forecast.get("wind") or {}
+        out["wind_speed_forecast"] = wind.get("speedKmh")
+        out["wind_direction_forecast"] = wind.get("direction")
+        series = forecast.get("timeSeries") or {}
+        limits = [x.get("elevationM") for x in series.get("snowfallLimit") or [] if x.get("elevationM") is not None]
+        reasons = {x.get("reasonForNull") for x in series.get("snowfallLimit") or [] if x.get("elevationM") is None}
+        out["snowfall_limit"] = {
+            "min_m": min(limits) if limits else None,
+            "max_m": max(limits) if limits else None,
+            # BELOW_REGION: the snow line stays below the region all day
+            "below_region": not limits and "BELOW_REGION" in reasons,
+        }
+        temps = [x for x in series.get("temperatures") or [] if x.get("valueC") is not None]
+        if temps:
+            out["temperature_max"] = max(x["valueC"] for x in temps)
+            out["temperature_elevation_m"] = temps[0].get("elevationM")
+    return out
+
+
 def region_report(feature: dict | None) -> dict:
     """What the bulletin says about one warning region.
 
@@ -165,4 +266,6 @@ def region_report(feature: dict | None) -> dict:
         "snowpack": _comments(props.get("snowpackStructure")),
         "weather_review": _comments(props.get("weatherReview")),
         "weather_forecast": _comments(props.get("weatherForecast")),
+        **_next_day(props, worst),
+        **_weather(props),
     }

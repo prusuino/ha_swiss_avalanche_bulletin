@@ -687,6 +687,12 @@ defineDashboardStrategy("swiss-avalanche-bulletin", {
         heading(deviceName(group.device), "mdi:snowflake-alert", badges),
         ids.danger_level && tile(ids.danger_level, { color: "red", grid_options: { columns: 6 } }),
         ids.region && tile(ids.region, { grid_options: { columns: 6 } }),
+        // The next day and the weather the bulletin gives for the region.
+        ids.danger_level_tomorrow && tile(ids.danger_level_tomorrow, { color: "orange", grid_options: { columns: 6 } }),
+        ids.trend && tile(ids.trend, { grid_options: { columns: 6 } }),
+        ids.new_snow_last_24h && tile(ids.new_snow_last_24h, { grid_options: { columns: 4 } }),
+        ids.new_snow_forecast && tile(ids.new_snow_forecast, { grid_options: { columns: 4 } }),
+        ids.snowfall_limit && tile(ids.snowfall_limit, { grid_options: { columns: 4 } }),
         // Up to three problems in the order the bulletin reports them;
         // outside the season they simply read "unknown".
         ...Object.keys(ids)
